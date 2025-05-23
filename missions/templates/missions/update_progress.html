@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Mettre à jour la progression - {{ mission.titre }}{% endblock %}
+
+{% block content %}
+  <div class="form-container">
+    <div class="form-header">
+      <h2>📈 Mettre à jour la progression</h2>
+      <p>Mission : <strong>{{ mission.titre }}</strong></p>
+    </div>
+
+    <form method="post" class="progress-form">
+      {% csrf_token %}
+      
+      <div class="form-field">
+        {{ form.pourcentage_completion.label_tag }}
+        <div class="progress-input-container">
+          {{ form.pourcentage_completion }}
+          <span class="progress-display">{{ progress.pourcentage_completion }}%</span>
+        </div>
+        <div class="progress-visual">
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: {{ progress.pourcentage_completion }}%"></div>
+          </div>
+        </div>
+        {% if form.pourcentage_completion.errors %}
+          <ul class="errorlist">
+            {% for error in form.pourcentage_completion.errors %}<li>{{ error }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+
+      <div class="form-field">
+        {{ form.description_avancement.label_tag }}
+        {{ form.description_avancement }}
+        {% if form.description_avancement.help_text %}
+          <small class="help-text">{{ form.description_avancement.help_text }}</small>
+        {% endif %}
+        {% if form.description_avancement.errors %}
+          <ul class="errorlist">
+            {% for error in form.description_avancement.errors %}<li>{{ error }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="button">💾 Enregistrer la progression</button>
+        <a href="{% url 'missions:tracking_detail' mission.pk %}" class="button button-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+
+  <style>
+    .form-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .form-header {
+        text-align: center;
+        margin-bottom: 2em;
+        padding: 2em;
+        background-color: var(--surface-color);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .form-header h2 {
+        margin: 0 0 0.5em 0;
+        color: var(--accent-color);
+    }
+    
+    .progress-form {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .form-field {
+        margin-bottom: 2em;
+    }
+    
+    .form-field label {
+        display: block;
+        margin-bottom: 0.5em;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+    
+    .progress-input-container {
+        display: flex;
+        align-items: center;
+        gap: 1em;
+        margin-bottom: 1em;
+    }
+    
+    .progress-input-container input {
+        flex-grow: 1;
+        padding: 0.8em;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-size: 1.1rem;
+    }
+    
+    .progress-display {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: var(--accent-color);
+        min-width: 60px;
+        text-align: center;
+    }
+    
+    .progress-visual {
+        margin-bottom: 1em;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 20px;
+        background-color: var(--border-color);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-color), #00bcd4);
+        transition: width 0.3s ease;
+        border-radius: 10px;
+    }
+    
+    .form-field textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 1em;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: inherit;
+        line-height: 1.5;
+        resize: vertical;
+    }
+    
+    .help-text {
+        display: block;
+        margin-top: 0.5em;
+        color: var(--text-secondary);
+        font-style: italic;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1em;
+        justify-content: center;
+        margin-top: 2em;
+    }
+    
+    .errorlist {
+        background-color: rgba(244, 67, 54, 0.1);
+        border: 1px solid #f44336;
+        color: #f44336;
+        padding: 0.5em 1em;
+        border-radius: 4px;
+        margin-top: 0.5em;
+        list-style: none;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .progress-input-container {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .progress-display {
+            text-align: left;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+    }
+  </style>
+
+  <script>
+    // Mise à jour en temps réel de l'affichage du pourcentage
+    document.addEventListener('DOMContentLoaded', function() {
+        const input = document.querySelector('#id_pourcentage_completion');
+        const display = document.querySelector('.progress-display');
+        const progressFill = document.querySelector('.progress-fill');
+        
+        if (input && display && progressFill) {
+            input.addEventListener('input', function() {
+                const value = this.value || 0;
+                display.textContent = value + '%';
+                progressFill.style.width = value + '%';
+            });
+        }
+    });
+  </script>
+
+{% endblock %}

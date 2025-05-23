@@ -6,7 +6,7 @@
   <h2>Missions Disponibles</h2>
 
   {# --- Formulaire de Recherche --- #}
-  <form method="get" action="{% url 'missions:list' %}" class="search-form"> {# Utilise la méthode GET #}
+  <form method="get" action="{% url 'missions:list' %}" class="search-form">
     <div class="form-row">
         <div class="form-field">
             {{ search_form.keywords.label_tag }}
@@ -16,25 +16,14 @@
             {{ search_form.competences.label_tag }}
             {{ search_form.competences }}
         </div>
-        {# Ajoutez d'autres champs de recherche ici si vous les implémentez #}
-        {# Exemple pour budget_min et budget_max
-        <div class="form-field">
-            {{ search_form.budget_min.label_tag }}
-            {{ search_form.budget_min }}
-        </div>
-        <div class="form-field">
-            {{ search_form.budget_max.label_tag }}
-            {{ search_form.budget_max }}
-        </div>
-        #}
     </div>
     <div class="form-actions">
         <button type="submit" class="button">Rechercher</button>
-        {% if request.GET %} {# Affiche un bouton pour réinitialiser si des filtres sont appliqués #}
+        {% if request.GET %}
             <a href="{% url 'missions:list' %}" class="button button-secondary" style="margin-left:1em;">Réinitialiser</a>
         {% endif %}
     </div>
-    {% if search_form.errors %} {# Afficher les erreurs du formulaire de recherche si besoin #}
+    {% if search_form.errors %}
         <ul class="errorlist">
             {% for field, errors in search_form.errors.items %}
                 {% for error in errors %}
@@ -47,7 +36,7 @@
   <hr>
   {# --- Fin Formulaire de Recherche --- #}
 
-  {% if user.is_authenticated %} {# Lien de création si connecté #}
+  {% if user.is_authenticated %}
   <p><a href="{% url 'missions:create' %}" class="button">Publier une nouvelle mission</a></p>
   {% endif %}
 
@@ -65,32 +54,89 @@
       </article>
     {% endfor %}
   {% else %}
-    {# Message si aucune mission ne correspond aux critères ou si aucune mission n'est ouverte #}
-    {% if request.GET %} {# Si des filtres ont été appliqués #}
+    {% if request.GET %}
         <p>Aucune mission ne correspond à vos critères de recherche.</p>
-    {% else %} {# Si pas de filtres, et pas de missions #}
+    {% else %}
         <p>Aucune mission n'est actuellement disponible.</p>
     {% endif %}
   {% endif %}
 
-  {# Style simple pour le formulaire de recherche #}
+  {# Style pour le formulaire de recherche #}
   <style>
+    .search-form {
+        background-color: var(--surface-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        margin-bottom: 2em;
+        border: 1px solid var(--border-color);
+    }
+    
     .search-form .form-row {
         display: flex;
-        flex-wrap: wrap; /* Permet de passer à la ligne sur petits écrans */
-        gap: 1em; /* Espace entre les champs */
-        margin-bottom: 1em;
+        flex-wrap: wrap;
+        gap: 1.5em;
+        margin-bottom: 1.5em;
     }
+    
     .search-form .form-field {
-        flex: 1; /* Permet aux champs de prendre la même largeur */
-        min-width: 200px; /* Largeur minimale avant de passer à la ligne */
+        flex: 1;
+        min-width: 250px;
     }
+    
     .search-form .form-field label {
-        font-weight: normal; /* Moins d'emphase que les labels de formulaire principaux */
-        font-size: 0.85rem;
+        display: block;
+        margin-bottom: 0.5em;
+        font-weight: 600;
+        color: var(--text-color);
+        font-size: 0.9rem;
     }
+    
+    .search-form .form-field input {
+        width: 100%;
+        padding: 0.75em;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-size: 1rem;
+    }
+    
+    .search-form .form-field input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(77, 208, 225, 0.3);
+    }
+    
     .search-form .form-actions {
+        display: flex;
+        align-items: center;
+        gap: 1em;
+    }
+    
+    .search-form .errorlist {
         margin-top: 1em;
+        margin-bottom: 0;
+    }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .search-form .form-row {
+            flex-direction: column;
+        }
+        
+        .search-form .form-field {
+            min-width: auto;
+        }
+        
+        .search-form .form-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .search-form .form-actions .button {
+            margin-left: 0 !important;
+            margin-bottom: 0.5em;
+        }
     }
   </style>
 

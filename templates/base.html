@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}"> {# Assurez-vous d'utiliser {% load static %} en haut si nécessaire #}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
         /* Styles simples pour les messages flash */
         .messages { list-style: none; padding: 0; margin: 1em 0; }
@@ -23,20 +23,23 @@
     <header>
         <h1><a href="{% url 'home' %}">FreelanceHub</a></h1>
         <nav>
-            <a href="{% url 'missions:list' %}">Trouver Missions</a> | {# Lien général #}
-          {% if user.is_authenticated %}
-              <span>Bonjour, {{ user.username }} | </span>
-              <a href="{% url 'users:profile' %}">Mon Profil</a> |
-              <a href="{% url 'missions:my_missions' %}">Mes Missions Publiées</a> | {# Lien pour les missions du client #}
-              <a href="{% url 'missions:my_applications' %}">Mes Candidatures</a> |
-              <form action="{% url 'users:logout' %}" method="post" style="display: inline;">
-                  {% csrf_token %}
-                  <button type="submit" style="background:none; border:none; padding:0; color: blue; text-decoration:underline; cursor:pointer;">Déconnexion</button>
-              </form>
-          {% else %}
-              <a href="{% url 'users:login' %}">Connexion</a> |
-              <a href="{% url 'users:register' %}">Inscription</a>
-          {% endif %}
+            <a href="{% url 'missions:list' %}">Missions</a> |
+            <a href="{% url 'users:freelance_search' %}">Freelances</a> |
+            {% if user.is_authenticated %}
+                <a href="{% url 'missions:tracking_dashboard' %}">Suivi</a> |
+                <a href="{% url 'messaging:list' %}">Messages</a> |
+                <span>Bonjour, {{ user.username }} | </span>
+                <a href="{% url 'users:profile' %}">Mon Profil</a> |
+                <a href="{% url 'missions:my_missions' %}">Mes Missions</a> |
+                <a href="{% url 'missions:my_applications' %}">Mes Candidatures</a> |
+                <form action="{% url 'users:logout' %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" style="background:none; border:none; padding:0; color: blue; text-decoration:underline; cursor:pointer;">Déconnexion</button>
+                </form>
+            {% else %}
+                <a href="{% url 'users:login' %}">Connexion</a> |
+                <a href="{% url 'users:register' %}">Inscription</a>
+            {% endif %}
         </nav>
         <hr>
     </header>
@@ -58,6 +61,5 @@
         <hr>
         <p>© 2025 FreelanceHub</p>
     </footer>
-    {# <script src="{% static 'js/script.js' %}"></script> #}
 </body>
 </html>

@@ -1,0 +1,819 @@
+{% extends "base.html" %}
+
+{% block title %}Suivi détaillé - {{ mission.titre }}{% endblock %}
+
+{% block content %}
+  <div class="tracking-container">
+    {# En-tête de la mission #}
+    <div class="mission-header">
+      <div class="mission-title">
+        <h2>📊 {{ mission.titre }}</h2>
+        <div class="mission-meta">
+          <span class="mission-status status-{{ mission.statut|lower }}">
+            {{ mission.get_statut_display }}
+          </span>
+          <span class="mission-date">Publiée le {{ mission.date_publication|date:"d/m/Y" }}</span>
+        </div>
+      </div>
+      
+      <div class="mission-actions">
+        <a href="{% url 'missions:detail' mission.pk %}" class="button button-secondary">
+          📄 Détails de la mission
+        </a>
+        <a href="{% url 'missions:tracking_dashboard' %}" class="button button-secondary">
+          ← Tableau de bord
+        </a>
+      </div>
+    </div>
+
+    <div class="tracking-grid">
+      {# Colonne principale #}
+      <div class="main-column">
+        {# Progression #}
+        <section class="progress-section">
+          <div class="section-header">
+            <h3>📈 Progression</h3>
+            {% if can_edit_progress %}
+              <a href="{% url 'missions:update_progress' mission.pk %}" class="button button-small">
+                Mettre à jour
+              </a>
+            {% endif %}
+          </div>
+          
+          <div class="progress-display">
+            <div class="progress-circle">
+              <svg viewBox="0 0 36 36" class="circular-chart">
+                <path class="circle-bg" d="M18 2.0845
+                  a 15.9155 15.9155 0 0 1 0 31.831
+                  a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="circle" stroke-dasharray="{{ progress.pourcentage_completion }}, 100" d="M18 2.0845
+                  a 15.9155 15.9155 0 0 1 0 31.831
+                  a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="20.35" class="percentage">{{ progress.pourcentage_completion }}%</text>
+              </svg>
+            </div>
+            
+            <div class="progress-info">
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ progress.pourcentage_completion }}%"></div>
+              </div>
+              
+              {% if progress.description_avancement %}
+                <div class="progress-description">
+                  <strong>Dernière mise à jour :</strong>
+                  <p>{{ progress.description_avancement|linebreaksbr }}</p>
+                  <small>
+                    Par {{ progress.mise_a_jour_par.username }} le {{ progress.derniere_mise_a_jour|date:"d/m/Y à H:i" }}
+                  </small>
+                </div>
+              {% else %}
+                <p class="no-description">Aucune description d'avancement.</p>
+              {% endif %}
+            </div>
+          </div>
+        </section>
+
+        
+
+        {# Commentaires #}
+        <section class="comments-section">
+          <div class="section-header">
+            <h3>💬 Commentaires</h3>
+            <button class="button button-small" onclick="toggleCommentForm()">
+              + Ajouter un commentaire
+            </button>
+          </div>
+          
+          {# Formulaire d'ajout de commentaire (caché par défaut) #}
+          <div id="comment-form" class="comment-form" style="display: none;">
+            <form method="post" action="{% url 'missions:add_comment' mission.pk %}">
+              {% csrf_token %}
+              <textarea name="contenu" placeholder="Votre commentaire..." rows="3" required></textarea>
+              <div class="form-options">
+                <label>
+                  <input type="checkbox" name="est_prive"> Commentaire privé
+                </label>
+                <div class="form-actions">
+                  <button type="submit" class="button">Publier</button>
+                  <button type="button" class="button button-secondary" onclick="toggleCommentForm()">Annuler</button>
+                </div>
+              </div>
+            </form>
+          </div>
+          
+          {% if comments %}
+            <div class="comments-list">
+              {% for comment in comments %}
+                <div class="comment-item {% if comment.est_prive %}private{% endif %}">
+                  <div class="comment-header">
+                    <span class="comment-author">{{ comment.auteur.username }}</span>
+                    <span class="comment-date">{{ comment.date_creation|date:"d/m/Y à H:i" }}</span>
+                    {% if comment.est_prive %}
+                      <span class="private-badge">🔒 Privé</span>
+                    {% endif %}
+                  </div>
+                  <div class="comment-content">
+                    {{ comment.contenu|linebreaksbr }}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="no-comments">
+              <p>Aucun commentaire pour le moment.</p>
+            </div>
+          {% endif %}
+        </section>
+      </div>
+
+      {# Colonne latérale #}
+      <div class="sidebar-column">
+        {# Informations de la mission #}
+        <div class="mission-info-card">
+          <h4>ℹ️ Informations</h4>
+          
+          <div class="info-item">
+            <label>Client :</label>
+            <span>{{ mission.client.username }}</span>
+          </div>
+          
+          {% if mission.freelance_assigne %}
+            <div class="info-item">
+              <label>Freelance :</label>
+              <span>{{ mission.freelance_assigne.username }}</span>
+            </div>
+          {% endif %}
+          
+          {% if mission.budget_propose %}
+            <div class="info-item">
+              <label>Budget :</label>
+              <span>{{ mission.budget_propose }} €</span>
+            </div>
+          {% endif %}
+          
+          {% if mission.date_debut_souhaitee %}
+            <div class="info-item">
+              <label>Début souhaité :</label>
+              <span>{{ mission.date_debut_souhaitee|date:"d/m/Y" }}</span>
+            </div>
+          {% endif %}
+          
+          {% if mission.date_fin_souhaitee %}
+            <div class="info-item">
+              <label>Fin souhaitée :</label>
+              <span>{{ mission.date_fin_souhaitee|date:"d/m/Y" }}</span>
+            </div>
+          {% endif %}
+        </div>
+
+        {# Actions rapides #}
+        <div class="quick-actions-card">
+          <h4>⚡ Actions rapides</h4>
+          
+          {% if can_change_status %}
+            <a href="{% url 'missions:update_status' mission.pk %}" class="action-button">
+              🔄 Changer le statut
+            </a>
+          {% endif %}
+          
+          <a href="{% url 'missions:add_milestone' mission.pk %}" class="action-button">
+            🎯 Ajouter un jalon
+          </a>
+          
+          {% if can_edit_progress %}
+            <a href="{% url 'missions:update_progress' mission.pk %}" class="action-button">
+              📈 Mettre à jour progression
+            </a>
+          {% endif %}
+          
+          {% if mission.client == user and mission.freelance_assigne %}
+            <a href="{% url 'messaging:start_conversation' mission.freelance_assigne.pk %}" class="action-button">
+              💬 Contacter le freelance
+            </a>
+          {% elif mission.freelance_assigne == user %}
+            <a href="{% url 'messaging:start_conversation' mission.client.pk %}" class="action-button">
+              💬 Contacter le client
+            </a>
+          {% endif %}
+        </div>
+
+        {# Historique des changements de statut #}
+        {% if status_updates %}
+          <div class="status-history-card">
+            <h4>📋 Historique des statuts</h4>
+            <div class="status-timeline">
+              {% for update in status_updates %}
+                <div class="status-update-item">
+                  <div class="status-change">
+                    <span class="old-status">{{ update.get_ancien_statut_display }}</span>
+                    →
+                    <span class="new-status">{{ update.get_nouveau_statut_display }}</span>
+                  </div>
+                  <div class="status-meta">
+                    <small>{{ update.auteur.username }} - {{ update.date_modification|date:"d/m/Y H:i" }}</small>
+                  </div>
+                  {% if update.commentaire %}
+                    <div class="status-comment">{{ update.commentaire }}</div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .tracking-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .mission-header {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        margin-bottom: 2em;
+        border: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 1.5em;
+    }
+    
+    .mission-title h2 {
+        margin: 0 0 0.5em 0;
+        color: var(--accent-color);
+    }
+    
+    .mission-meta {
+        display: flex;
+        gap: 1em;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .mission-status {
+        padding: 0.4em 1em;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    
+    .mission-date {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    .mission-actions {
+        display: flex;
+        gap: 0.5em;
+        flex-wrap: wrap;
+    }
+    
+    .tracking-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2em;
+    }
+    
+    .main-column {
+        display: flex;
+        flex-direction: column;
+        gap: 2em;
+    }
+    
+    .sidebar-column {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5em;
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5em;
+    }
+    
+    .section-header h3 {
+        margin: 0;
+        color: var(--accent-color);
+    }
+    
+    .button-small {
+        font-size: 0.85rem;
+        padding: 0.5em 1em;
+    }
+    
+    /* Section de progression */
+    .progress-section {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .progress-display {
+        display: flex;
+        gap: 2em;
+        align-items: center;
+    }
+    
+    .progress-circle {
+        width: 120px;
+        height: 120px;
+        flex-shrink: 0;
+    }
+    
+    .circular-chart {
+        display: block;
+        margin: 10px auto;
+        max-width: 80%;
+        max-height: 250px;
+    }
+    
+    .circle-bg {
+        fill: none;
+        stroke: var(--border-color);
+        stroke-width: 3.8;
+    }
+    
+    .circle {
+        fill: none;
+        stroke-width: 2.8;
+        stroke-linecap: round;
+        animation: progress 1s ease-out forwards;
+        stroke: var(--accent-color);
+    }
+    
+    .percentage {
+        fill: var(--text-color);
+        font-family: sans-serif;
+        font-size: 0.5em;
+        text-anchor: middle;
+        font-weight: bold;
+    }
+    
+    @keyframes progress {
+        0% {
+            stroke-dasharray: 0 100;
+        }
+    }
+    
+    .progress-info {
+        flex-grow: 1;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 12px;
+        background-color: var(--border-color);
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 1em;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-color), #00bcd4);
+        transition: width 0.3s ease;
+    }
+    
+    .progress-description {
+        background-color: var(--bg-color);
+        padding: 1em;
+        border-radius: 6px;
+        border-left: 3px solid var(--accent-color);
+    }
+    
+    .progress-description p {
+        margin: 0.5em 0;
+    }
+    
+    .progress-description small {
+        color: var(--text-secondary);
+    }
+    
+    /* Section des jalons */
+    .milestones-section {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .milestones-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5em;
+    }
+    
+    .milestone-item {
+        display: flex;
+        gap: 1em;
+        padding: 1.5em;
+        background-color: var(--bg-color);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        transition: all 0.2s ease;
+    }
+    
+    .milestone-item.completed {
+        opacity: 0.8;
+        background-color: rgba(76, 175, 80, 0.1);
+        border-color: #4caf50;
+    }
+    
+    .milestone-item.overdue {
+        background-color: rgba(244, 67, 54, 0.1);
+        border-color: #f44336;
+    }
+    
+    .milestone-status {
+        display: flex;
+        align-items: flex-start;
+        padding-top: 0.2em;
+    }
+    
+    .milestone-checkbox {
+        width: 1.2em;
+        height: 1.2em;
+        cursor: pointer;
+    }
+    
+    .milestone-content {
+        flex-grow: 1;
+    }
+    
+    .milestone-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.5em;
+        gap: 1em;
+    }
+    
+    .milestone-title {
+        margin: 0;
+        color: var(--text-color);
+        font-size: 1.1rem;
+    }
+    
+    .milestone-dates {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3em;
+        font-size: 0.85rem;
+    }
+    
+    .milestone-due {
+        color: var(--text-secondary);
+    }
+    
+    .milestone-completed {
+        color: #4caf50;
+        font-weight: 500;
+    }
+    
+    .milestone-description {
+        margin: 0.5em 0;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+    
+    .milestone-creator {
+        color: var(--text-secondary);
+        font-style: italic;
+    }
+    
+    .no-milestones {
+        text-align: center;
+        padding: 2em;
+        color: var(--text-secondary);
+    }
+    
+    /* Section des commentaires */
+    .comments-section {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .comment-form {
+        margin-bottom: 1.5em;
+        padding: 1.5em;
+        background-color: var(--bg-color);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .comment-form textarea {
+        width: 100%;
+        min-height: 80px;
+        padding: 1em;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background-color: var(--surface-color);
+        color: var(--text-color);
+        font-family: inherit;
+        margin-bottom: 1em;
+        resize: vertical;
+    }
+    
+    .form-options {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1em;
+    }
+    
+    .form-options label {
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 0.5em;
+    }
+    
+    .comments-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1em;
+    }
+    
+    .comment-item {
+        padding: 1.5em;
+        background-color: var(--bg-color);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .comment-item.private {
+        background-color: rgba(77, 208, 225, 0.1);
+        border-color: var(--accent-color);
+    }
+    
+    .comment-header {
+        display: flex;
+        align-items: center;
+        gap: 1em;
+        margin-bottom: 0.8em;
+        flex-wrap: wrap;
+    }
+    
+    .comment-author {
+        font-weight: 600;
+        color: var(--accent-color);
+    }
+    
+    .comment-date {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+    }
+    
+    .private-badge {
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+        padding: 0.2em 0.5em;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .comment-content {
+        line-height: 1.6;
+        color: var(--text-color);
+    }
+    
+    .no-comments {
+        text-align: center;
+        padding: 2em;
+        color: var(--text-secondary);
+    }
+    
+    /* Cartes de la barre latérale */
+    .mission-info-card,
+    .quick-actions-card,
+    .status-history-card {
+        background-color: var(--surface-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .mission-info-card h4,
+    .quick-actions-card h4,
+    .status-history-card h4 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+        font-size: 1rem;
+    }
+    
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.8em;
+        gap: 1em;
+    }
+    
+    .info-item label {
+        color: var(--text-secondary);
+        font-weight: 500;
+        min-width: fit-content;
+    }
+    
+    .info-item span {
+        color: var(--text-color);
+        text-align: right;
+    }
+    
+    .action-button {
+        display: block;
+        width: 100%;
+        padding: 0.8em 1em;
+        margin-bottom: 0.5em;
+        background-color: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--text-color);
+        text-decoration: none;
+        text-align: center;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+    }
+    
+    .action-button:hover {
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+        border-color: var(--accent-color);
+        text-decoration: none;
+    }
+    
+    .status-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 1em;
+    }
+    
+    .status-update-item {
+        padding: 1em;
+        background-color: var(--bg-color);
+        border-radius: 6px;
+        border-left: 3px solid var(--accent-color);
+    }
+    
+    .status-change {
+        font-weight: 500;
+        margin-bottom: 0.5em;
+    }
+    
+    .old-status {
+        color: var(--text-secondary);
+    }
+    
+    .new-status {
+        color: var(--accent-color);
+    }
+    
+    .status-meta {
+        margin-bottom: 0.5em;
+    }
+    
+    .status-meta small {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+    }
+    
+    .status-comment {
+        font-style: italic;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .tracking-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .sidebar-column {
+            order: -1;
+        }
+        
+        .progress-display {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .milestone-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .mission-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .mission-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .form-options {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .form-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+        
+        .comment-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5em;
+        }
+        
+        .milestone-dates {
+            margin-top: 0.5em;
+        }
+    }
+  </style>
+
+  <script>
+    // Fonction pour basculer l'affichage du formulaire de commentaire
+    function toggleCommentForm() {
+        const form = document.getElementById('comment-form');
+        if (form.style.display === 'none') {
+            form.style.display = 'block';
+            form.querySelector('textarea').focus();
+        } else {
+            form.style.display = 'none';
+        }
+    }
+    
+    // Gestion des cases à cocher des jalons
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkboxes = document.querySelectorAll('.milestone-checkbox');
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const milestoneId = this.dataset.milestoneId;
+                const isComplete = this.checked;
+                
+                // Envoyer la requête AJAX
+                fetch(`{% url 'missions:toggle_milestone' mission.pk 0 %}`.replace('0', milestoneId), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({
+                        est_complete: isComplete
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Mettre à jour l'affichage
+                        const milestoneItem = this.closest('.milestone-item');
+                        if (isComplete) {
+                            milestoneItem.classList.add('completed');
+                            milestoneItem.classList.remove('overdue');
+                        } else {
+                            milestoneItem.classList.remove('completed');
+                        }
+                        
+                        // Optionnel : afficher un message de confirmation
+                        console.log('Jalon mis à jour avec succès');
+                    } else {
+                        // Remettre la case dans l'état précédent en cas d'erreur
+                        this.checked = !isComplete;
+                        alert('Erreur lors de la mise à jour du jalon');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    this.checked = !isComplete;
+                    alert('Erreur de connexion');
+                });
+            });
+        });
+    });
+  </script>
+
+{% endblock %}

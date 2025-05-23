@@ -1,0 +1,527 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de Bord - Suivi des Missions{% endblock %}
+
+{% block content %}
+  <div class="dashboard-container">
+    <div class="dashboard-header">
+      <h2>📊 Tableau de Bord - Suivi des Missions</h2>
+      <p>Vue d'ensemble de vos missions en cours et terminées</p>
+    </div>
+
+    {# Statistiques rapides #}
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📋</div>
+        <div class="stat-number">{{ stats.total_missions }}</div>
+        <div class="stat-label">Total missions</div>
+      </div>
+      <div class="stat-card in-progress">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-number">{{ stats.missions_en_cours }}</div>
+        <div class="stat-label">En cours</div>
+      </div>
+      <div class="stat-card completed">
+        <div class="stat-icon">✅</div>
+        <div class="stat-number">{{ stats.missions_completees }}</div>
+        <div class="stat-label">Complétées</div>
+      </div>
+      <div class="stat-card overdue">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-number">{{ stats.missions_en_retard }}</div>
+        <div class="stat-label">En retard</div>
+      </div>
+      <div class="stat-card progress">
+        <div class="stat-icon">📈</div>
+        <div class="stat-number">{{ avg_progress }}%</div>
+        <div class="stat-label">Progression moyenne</div>
+      </div>
+    </div>
+
+    {# Filtres #}
+    <div class="filters-section">
+      <form method="get" class="filters-form">
+        <div class="filter-row">
+          <div class="filter-field">
+            {{ filter_form.statut.label_tag }}
+            {{ filter_form.statut }}
+          </div>
+          <div class="filter-field">
+            {{ filter_form.date_debut.label_tag }}
+            {{ filter_form.date_debut }}
+          </div>
+          <div class="filter-field">
+            {{ filter_form.date_fin.label_tag }}
+            {{ filter_form.date_fin }}
+          </div>
+          <div class="filter-field checkbox-field">
+            {{ filter_form.retard_uniquement }}
+            {{ filter_form.retard_uniquement.label_tag }}
+          </div>
+        </div>
+        <div class="filter-actions">
+          <button type="submit" class="button">Filtrer</button>
+          {% if request.GET %}
+            <a href="{% url 'missions:tracking_dashboard' %}" class="button button-secondary">Réinitialiser</a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+
+    {# Liste des missions #}
+    <div class="missions-section">
+      <h3>Vos Missions ({{ missions.count }})</h3>
+      
+      {% if missions %}
+        <div class="missions-grid">
+          {% for mission in missions %}
+            <div class="mission-card">
+              <div class="mission-header">
+                <h4>
+                  <a href="{% url 'missions:tracking_detail' mission.pk %}">{{ mission.titre }}</a>
+                </h4>
+                <span class="mission-status status-{{ mission.statut|lower }}">
+                  {{ mission.get_statut_display }}
+                </span>
+              </div>
+
+              <div class="mission-info">
+                <div class="mission-participants">
+                  {% if mission.client == user %}
+                    <span class="role">👤 Vous (Client)</span>
+                    {% if mission.freelance_assigne %}
+                      <span class="freelance">🎯 {{ mission.freelance_assigne.username }}</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="role">🎯 Vous (Freelance)</span>
+                    <span class="client">👤 {{ mission.client.username }}</span>
+                  {% endif %}
+                </div>
+
+                <div class="mission-dates">
+                  <small>Publiée le {{ mission.date_publication|date:"d/m/Y" }}</small>
+                  {% if mission.date_fin_souhaitee %}
+                    <small>Échéance : {{ mission.date_fin_souhaitee|date:"d/m/Y" }}</small>
+                  {% endif %}
+                </div>
+              </div>
+
+              {# Barre de progression #}
+              {% if mission.progress %}
+                <div class="progress-section">
+                  <div class="progress-label">
+                    <span>Progression</span>
+                    <span class="progress-percent">{{ mission.progress.pourcentage_completion }}%</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ mission.progress.pourcentage_completion }}%"></div>
+                  </div>
+                  {% if mission.progress.description_avancement %}
+                    <small class="progress-description">{{ mission.progress.description_avancement|truncatewords:10 }}</small>
+                  {% endif %}
+                </div>
+              {% else %}
+                <div class="progress-section">
+                  <div class="progress-label">
+                    <span>Progression</span>
+                    <span class="progress-percent">0%</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%"></div>
+                  </div>
+                  <small class="progress-description">Aucune progression enregistrée</small>
+                </div>
+              {% endif %}
+
+              {# Jalons #}
+              {% if mission.milestones.all %}
+                <div class="milestones-preview">
+                  <div class="milestones-header">
+                    <span>Jalons</span>
+                    <span class="milestones-count">
+                      {{ mission.completed_count|default:0 }}/{{ mission.milestones.count }}
+                    </span>
+                  </div>
+                  <div class="milestones-list">
+                    {% for milestone in mission.milestones.all|slice:":3" %}
+                      <div class="milestone-item {% if milestone.est_complete %}completed{% elif milestone.is_overdue %}overdue{% endif %}">
+                        <span class="milestone-status">
+                          {% if milestone.est_complete %}✅{% elif milestone.is_overdue %}⚠️{% else %}○{% endif %}
+                        </span>
+                        <span class="milestone-title">{{ milestone.titre }}</span>
+                        <span class="milestone-date">{{ milestone.date_prevue|date:"d/m" }}</span>
+                      </div>
+                    {% endfor %}
+                    {% if mission.milestones.count > 3 %}
+                      <small class="milestones-more">+{{ mission.milestones.count|add:"-3" }} autre{{ mission.milestones.count|add:"-3"|pluralize }}</small>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endif %}
+
+              <div class="mission-actions">
+                <a href="{% url 'missions:tracking_detail' mission.pk %}" class="button button-secondary">
+                  📊 Voir le suivi détaillé
+                </a>
+                <a href="{% url 'missions:detail' mission.pk %}" class="button button-secondary">
+                  📄 Détails mission
+                </a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="no-missions">
+          <p>{% if request.GET %}Aucune mission ne correspond aux critères sélectionnés.{% else %}Vous n'avez aucune mission pour le moment.{% endif %}</p>
+          <a href="{% url 'missions:list' %}" class="button">Découvrir les missions</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <style>
+    .dashboard-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .dashboard-header {
+        text-align: center;
+        margin-bottom: 2em;
+    }
+    
+    .dashboard-header h2 {
+        margin-bottom: 0.5em;
+        color: var(--accent-color);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1.5em;
+        margin-bottom: 2em;
+    }
+    
+    .stat-card {
+        background-color: var(--surface-color);
+        padding: 1.5em;
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid var(--border-color);
+        transition: transform 0.2s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-3px);
+    }
+    
+    .stat-card.in-progress {
+        border-left: 4px solid #ff9800;
+    }
+    
+    .stat-card.completed {
+        border-left: 4px solid #4caf50;
+    }
+    
+    .stat-card.overdue {
+        border-left: 4px solid #f44336;
+    }
+    
+    .stat-card.progress {
+        border-left: 4px solid var(--accent-color);
+    }
+    
+    .stat-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5em;
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--accent-color);
+        margin-bottom: 0.3em;
+    }
+    
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    .filters-section {
+        background-color: var(--surface-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        margin-bottom: 2em;
+        border: 1px solid var(--border-color);
+    }
+    
+    .filter-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1em;
+        margin-bottom: 1em;
+    }
+    
+    .filter-field label {
+        display: block;
+        margin-bottom: 0.5em;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+    
+    .filter-field input, .filter-field select {
+        width: 100%;
+        padding: 0.5em;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+    }
+    
+    .checkbox-field {
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+        margin-top: 1.5em;
+    }
+    
+    .checkbox-field input[type="checkbox"] {
+        width: auto;
+    }
+    
+    .filter-actions {
+        display: flex;
+        gap: 1em;
+    }
+    
+    .missions-section h3 {
+        color: var(--accent-color);
+        margin-bottom: 1em;
+    }
+    
+    .missions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5em;
+    }
+    
+    .mission-card {
+        background-color: var(--surface-color);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.5em;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .mission-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .mission-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1em;
+        gap: 1em;
+    }
+    
+    .mission-header h4 {
+        margin: 0;
+        flex-grow: 1;
+    }
+    
+    .mission-header h4 a {
+        color: var(--accent-color);
+        text-decoration: none;
+    }
+    
+    .mission-status {
+        padding: 0.3em 0.8em;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    
+    .status-open { background-color: #4caf50; color: white; }
+    .status-assigned { background-color: #ff9800; color: white; }
+    .status-in_progress { background-color: #2196f3; color: white; }
+    .status-completed { background-color: #9c27b0; color: white; }
+    .status-closed { background-color: #607d8b; color: white; }
+    .status-cancelled { background-color: #f44336; color: white; }
+    
+    .mission-info {
+        margin-bottom: 1em;
+    }
+    
+    .mission-participants {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3em;
+        margin-bottom: 0.5em;
+    }
+    
+    .mission-participants span {
+        font-size: 0.9rem;
+    }
+    
+    .role {
+        font-weight: 600;
+        color: var(--accent-color);
+    }
+    
+    .mission-dates {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2em;
+    }
+    
+    .mission-dates small {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+    }
+    
+    .progress-section {
+        margin-bottom: 1em;
+        padding: 1em;
+        background-color: var(--bg-color);
+        border-radius: 6px;
+    }
+    
+    .progress-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5em;
+        font-size: 0.9rem;
+    }
+    
+    .progress-percent {
+        font-weight: 600;
+        color: var(--accent-color);
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background-color: var(--border-color);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 0.5em;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-color), #00bcd4);
+        transition: width 0.3s ease;
+    }
+    
+    .progress-description {
+        color: var(--text-secondary);
+        font-style: italic;
+    }
+    
+    .milestones-preview {
+        margin-bottom: 1em;
+        padding: 1em;
+        background-color: var(--bg-color);
+        border-radius: 6px;
+    }
+    
+    .milestones-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5em;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    
+    .milestones-count {
+        color: var(--accent-color);
+    }
+    
+    .milestone-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+        margin-bottom: 0.3em;
+        font-size: 0.85rem;
+    }
+    
+    .milestone-item.completed {
+        opacity: 0.7;
+        text-decoration: line-through;
+    }
+    
+    .milestone-item.overdue .milestone-title {
+        color: #f44336;
+    }
+    
+    .milestone-status {
+        width: 1.2em;
+        text-align: center;
+    }
+    
+    .milestone-title {
+        flex-grow: 1;
+    }
+    
+    .milestone-date {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+    }
+    
+    .milestones-more {
+        color: var(--text-secondary);
+        font-style: italic;
+        margin-left: 1.7em;
+    }
+    
+    .mission-actions {
+        display: flex;
+        gap: 0.5em;
+        flex-wrap: wrap;
+    }
+    
+    .mission-actions .button {
+        font-size: 0.85rem;
+        padding: 0.5em 1em;
+        flex: 1;
+        text-align: center;
+    }
+    
+    .no-missions {
+        text-align: center;
+        padding: 3em 2em;
+        background-color: var(--surface-color);
+        border-radius: 8px;
+        color: var(--text-secondary);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .missions-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .mission-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .mission-actions {
+            flex-direction: column;
+        }
+        
+        .filter-actions {
+            flex-direction: column;
+        }
+    }
+  </style>
+
+{% endblock %}

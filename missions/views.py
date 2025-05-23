@@ -1,240 +1,231 @@
 # missions/views.py
+from django.template.loader import render_to_string
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Mission, MissionStatus, Candidature, CandidatureStatus, Evaluation # Ajoutez Evaluation
-from .forms import MissionForm, CandidatureForm, EvaluationForm, MissionSearchForm # Ajoutez EvaluationForm
-from .forms import MissionForm, CandidatureForm # Ajoutez CandidatureForm
-from django.views.decorators.http import require_POST # Pour les actions de modification (Accept/Reject)
-# messaging/views.py
-# ... (autres imports) ...
-from django.contrib.auth import get_user_model # Pour récupérer le modèle User
-from django.db.models import Count # Pour compter les participants
+from .models import Mission, MissionStatus, Candidature, CandidatureStatus, Evaluation
+from .forms import MissionForm, CandidatureForm, EvaluationForm, MissionSearchForm
+from django.views.decorators.http import require_POST
+from django.contrib.auth import get_user_model
+from django.db.models import Count, Q  # Added Q import for search
+from django.http import HttpResponseForbidden
+from .models import (
+    MissionProgress,
+    MissionMilestone,
+    MissionComment,
+    MissionStatusUpdate,
+)
+from .forms import (
+    MissionProgressForm,
+    MissionStatusUpdateForm,
+    MissionMilestoneForm,
+    MilestoneStatusForm,
+    MissionCommentForm,
+    MissionTrackingFilterForm,
+)
 
-User = get_user_model() # Obtenir le modèle User actif
+from django.utils import timezone
+from django.db.models import Q, Avg, Count
+from django.http import JsonResponse
+import json
 
-@login_required # Simple protection, tout utilisateur connecté peut voir
+User = get_user_model()
+
+
+@login_required
 def mission_list_view(request):
-    """Affiche la liste des missions ouvertes."""
-    missions_ouvertes = Mission.objects.filter(statut=MissionStatus.OPEN).order_by('-date_publication')
-    context = {
-        'missions': missions_ouvertes,
-    }
-    return render(request, 'missions/mission_list.html', context)
+    """Affiche la liste des missions ouvertes avec recherche."""
     # Récupérer toutes les missions ouvertes initialement
-    queryset = Mission.objects.filter(statut=MissionStatus.OPEN).order_by('-date_publication')
-     # Initialiser le formulaire de recherche
-    form = MissionSearchForm(request.GET or None) # request.GET pour pré-remplir si des filtres sont déjà appliqués
+    queryset = Mission.objects.filter(statut=MissionStatus.OPEN).order_by(
+        "-date_publication"
+    )
+
+    # Initialiser le formulaire de recherche
+    form = MissionSearchForm(request.GET or None)
 
     if form.is_valid():
-        print("Form is valid!")
-        keywords = form.cleaned_data.get('keywords')
-        competences = form.cleaned_data.get('competences')
-        print(f"Keywords récupérés: '{keywords}'")
-        print(f"Compétences récupérées: '{competences}'")
-    else:
-        print("Form is NOT valid. Errors:")
-        print(form.errors)
+        keywords = form.cleaned_data.get("keywords")
+        competences = form.cleaned_data.get("competences")
 
         if keywords:
             # Recherche dans le titre OU la description (insensible à la casse)
-            # Le Q object permet des conditions OR
             queryset = queryset.filter(
                 Q(titre__icontains=keywords) | Q(description__icontains=keywords)
             )
-        
+
         if competences:
             # Recherche simple dans le champ competences_requises
-            # Pour une recherche plus avancée (ex: si compétences était un ManyToManyField),
-            # la logique serait différente.
-            # On peut rechercher plusieurs compétences séparées par des virgules par exemple.
-            competences_list = [comp.strip() for comp in competences.split(',') if comp.strip()]
+            competences_list = [
+                comp.strip() for comp in competences.split(",") if comp.strip()
+            ]
             for comp_item in competences_list:
                 queryset = queryset.filter(competences_requises__icontains=comp_item)
-        
-        # Exemple pour budget (si vous ajoutez ces champs au formulaire)
-        # if budget_min:
-        #     queryset = queryset.filter(budget_propose__gte=budget_min)
-        # if budget_max:
-        #     queryset = queryset.filter(budget_propose__lte=budget_max)
 
     context = {
-        'missions': queryset,
-        'search_form': form,
+        "missions": queryset,
+        "search_form": form,
     }
-    return render(request, 'missions/mission_list.html', context)
+    return render(request, "missions/mission_list.html", context)
 
-# missions/views.py
 
 @login_required
 def mission_detail_view(request, pk):
     """Affiche les détails d'une mission spécifique."""
     mission = get_object_or_404(Mission, pk=pk)
 
-    # --- AJOUTEZ CECI ---
     existing_candidature = None
     if request.user.is_authenticated and request.user != mission.client:
-        # Cherche si l'utilisateur connecté a déjà postulé à CETTE mission
-        existing_candidature = Candidature.objects.filter(mission=mission, freelance=request.user).first()
-    # --- FIN DE L'AJOUT ---
+        existing_candidature = Candidature.objects.filter(
+            mission=mission, freelance=request.user
+        ).first()
 
     context = {
-        'mission': mission,
-        # --- AJOUTEZ existing_candidature AU CONTEXTE ---
-        'existing_candidature': existing_candidature,
+        "mission": mission,
+        "existing_candidature": existing_candidature,
     }
-    return render(request, 'missions/mission_detail.html', context)
+    return render(request, "missions/mission_detail.html", context)
+
 
 @login_required
 def create_mission_view(request):
     """Permet à un utilisateur connecté de créer une mission."""
-    # Idéalement, vérifier si l'utilisateur est un client
-    # if not hasattr(request.user, 'client_profile') or not request.user.client_profile:
-    #     messages.error(request, "Vous devez avoir un profil Client pour publier une mission.")
-    #     return redirect('home') # Ou vers la création de profil client
-
-    if request.method == 'POST':
+    if request.method == "POST":
         form = MissionForm(request.POST)
         if form.is_valid():
             mission = form.save(commit=False)
-            mission.client = request.user # Assigne l'utilisateur connecté comme client
-            # Le statut par défaut est déjà 'OPEN' dans le modèle
+            mission.client = request.user
             mission.save()
             messages.success(request, "Nouvelle mission publiée avec succès !")
-            return redirect('missions:detail', pk=mission.pk) # Redirige vers la page détail de la nouvelle mission
+            return redirect("missions:detail", pk=mission.pk)
         else:
-            messages.error(request, "Erreur lors de la publication de la mission. Veuillez corriger les erreurs.")
-    else: # GET
+            messages.error(
+                request,
+                "Erreur lors de la publication de la mission. Veuillez corriger les erreurs.",
+            )
+    else:
         form = MissionForm()
 
-    context = {
-        'form': form,
-        'is_creation': True # Variable pour ajuster le titre/bouton dans le template
-    }
-    # Utilisation d'un template générique pour le formulaire
-    return render(request, 'missions/mission_form.html', context)
+    context = {"form": form, "is_creation": True}
+    return render(request, "missions/mission_form.html", context)
+
 
 @login_required
 def my_missions_view(request):
     """Affiche les missions publiées par l'utilisateur connecté."""
-    missions_utilisateur = Mission.objects.filter(client=request.user).order_by('-date_publication')
+    missions_utilisateur = Mission.objects.filter(client=request.user).order_by(
+        "-date_publication"
+    )
     context = {
-        'missions': missions_utilisateur,
+        "missions": missions_utilisateur,
     }
-    return render(request, 'missions/my_missions.html', context)
+    return render(request, "missions/my_missions.html", context)
 
-# Ajouter plus tard: vue pour modifier une mission (nécessite permission), vue pour postuler, etc.
-# missions/views.py
-# ... (vues existantes) ...
 
 @login_required
 def apply_to_mission_view(request, mission_pk):
     """Permet à un freelance de postuler à une mission."""
     mission = get_object_or_404(Mission, pk=mission_pk)
 
-    # Vérifications:
-    # 1. La mission est-elle ouverte ?
     if mission.statut != MissionStatus.OPEN:
         messages.error(request, "Les candidatures pour cette mission sont closes.")
-        return redirect('missions:detail', pk=mission.pk)
-    # 2. L'utilisateur est-il le client ? (ne peut pas postuler à sa propre mission)
-    if mission.client == request.user:
-         messages.error(request, "Vous ne pouvez pas postuler à votre propre mission.")
-         return redirect('missions:detail', pk=mission.pk)
-    # 3. L'utilisateur a-t-il un profil freelance ? (à affiner si besoin)
-    # if not hasattr(request.user, 'freelance_profile'):
-    #    messages.error(request, "Vous devez avoir un profil Freelance pour postuler.")
-    #    return redirect('missions:detail', pk=mission.pk)
-    # 4. L'utilisateur a-t-il déjà postulé ?
-    existing_candidature = Candidature.objects.filter(mission=mission, freelance=request.user).first()
-    if existing_candidature:
-         messages.warning(request, "Vous avez déjà postulé à cette mission.")
-         return redirect('missions:detail', pk=mission.pk)
+        return redirect("missions:detail", pk=mission.pk)
 
-    if request.method == 'POST':
+    if mission.client == request.user:
+        messages.error(request, "Vous ne pouvez pas postuler à votre propre mission.")
+        return redirect("missions:detail", pk=mission.pk)
+
+    existing_candidature = Candidature.objects.filter(
+        mission=mission, freelance=request.user
+    ).first()
+    if existing_candidature:
+        messages.warning(request, "Vous avez déjà postulé à cette mission.")
+        return redirect("missions:detail", pk=mission.pk)
+
+    if request.method == "POST":
         form = CandidatureForm(request.POST)
         if form.is_valid():
             candidature = form.save(commit=False)
             candidature.mission = mission
             candidature.freelance = request.user
-            # Statut par défaut est SUBMITTED
             candidature.save()
             messages.success(request, "Votre candidature a été envoyée avec succès !")
-            return redirect('missions:detail', pk=mission.pk) # Ou vers 'mes candidatures'
+            return redirect("missions:detail", pk=mission.pk)
         else:
-             messages.error(request, "Erreur dans le formulaire de candidature.")
-    else: # GET
+            messages.error(request, "Erreur dans le formulaire de candidature.")
+    else:
         form = CandidatureForm()
 
     context = {
-        'form': form,
-        'mission': mission,
+        "form": form,
+        "mission": mission,
     }
-    return render(request, 'missions/apply_form.html', context)
+    return render(request, "missions/apply_form.html", context)
+
 
 @login_required
 def my_applications_view(request):
     """Affiche les candidatures envoyées par le freelance connecté."""
-    candidatures = Candidature.objects.filter(freelance=request.user).order_by('-date_candidature')
-    context = {
-        'candidatures': candidatures
-    }
-    return render(request, 'missions/my_applications.html', context)
+    candidatures = Candidature.objects.filter(freelance=request.user).order_by(
+        "-date_candidature"
+    )
+    context = {"candidatures": candidatures}
+    return render(request, "missions/my_applications.html", context)
+
 
 @login_required
 def view_candidatures_view(request, mission_pk):
     """Affiche les candidatures reçues pour une mission spécifique (pour le client)."""
     mission = get_object_or_404(Mission, pk=mission_pk)
 
-    # Vérifier que l'utilisateur connecté est bien le client de la mission
     if mission.client != request.user:
-        # messages.error(request, "Vous n'avez pas la permission de voir ces candidatures.")
-        # return redirect('missions:detail', pk=mission.pk)
-        # Ou mieux, une erreur Forbidden
         return HttpResponseForbidden("Vous n'êtes pas autorisé à accéder à cette page.")
 
-    candidatures = mission.candidatures.all().order_by('-date_candidature') # Utilise le related_name
+    candidatures = mission.candidatures.all().order_by("-date_candidature")
 
     context = {
-        'mission': mission,
-        'candidatures': candidatures,
+        "mission": mission,
+        "candidatures": candidatures,
     }
-    return render(request, 'missions/candidature_list.html', context)
+    return render(request, "missions/candidature_list.html", context)
 
 
 @login_required
-@require_POST # S'assurer que cette vue ne peut être appelée qu'en POST
+@require_POST
 def accept_candidature_view(request, candidature_pk):
     """Action pour accepter une candidature (par le client)."""
     candidature = get_object_or_404(Candidature, pk=candidature_pk)
     mission = candidature.mission
 
-    # Vérifier que l'utilisateur connecté est bien le client de la mission
     if mission.client != request.user:
         return HttpResponseForbidden("Action non autorisée.")
 
-    # Vérifier si on peut accepter (mission ouverte, candidature soumise)
-    if mission.statut == MissionStatus.OPEN and candidature.statut == CandidatureStatus.SUBMITTED:
-        # Accepter la candidature
+    if (
+        mission.statut == MissionStatus.OPEN
+        and candidature.statut == CandidatureStatus.SUBMITTED
+    ):
         candidature.statut = CandidatureStatus.ACCEPTED
         candidature.save()
 
-        # Assigner le freelance et changer statut mission
         mission.freelance_assigne = candidature.freelance
         mission.statut = MissionStatus.ASSIGNED
         mission.save()
 
-        # Optionnel: Refuser automatiquement les autres candidatures pour cette mission
-        autres_candidatures = mission.candidatures.filter(statut=CandidatureStatus.SUBMITTED)
+        autres_candidatures = mission.candidatures.filter(
+            statut=CandidatureStatus.SUBMITTED
+        )
         autres_candidatures.update(statut=CandidatureStatus.REJECTED)
 
-        messages.success(request, f"Candidature de {candidature.freelance.username} acceptée ! La mission est maintenant assignée.")
-        # Envoyer notifications ici si nécessaire...
+        messages.success(
+            request,
+            f"Candidature de {candidature.freelance.username} acceptée ! La mission est maintenant assignée.",
+        )
     else:
-        messages.error(request, "Impossible d'accepter cette candidature (statut invalide).")
+        messages.error(
+            request, "Impossible d'accepter cette candidature (statut invalide)."
+        )
 
-    # Rediriger vers la liste des candidatures de cette mission
-    return redirect('missions:view_candidatures', mission_pk=mission.pk)
+    return redirect("missions:view_candidatures", mission_pk=mission.pk)
+
 
 @login_required
 @require_POST
@@ -243,67 +234,57 @@ def reject_candidature_view(request, candidature_pk):
     candidature = get_object_or_404(Candidature, pk=candidature_pk)
     mission = candidature.mission
 
-    # Vérifier que l'utilisateur connecté est bien le client de la mission
     if mission.client != request.user:
         return HttpResponseForbidden("Action non autorisée.")
 
-    # Vérifier si on peut refuser (candidature soumise)
     if candidature.statut == CandidatureStatus.SUBMITTED:
         candidature.statut = CandidatureStatus.REJECTED
         candidature.save()
-        messages.info(request, f"Candidature de {candidature.freelance.username} refusée.")
-        # Envoyer notifications ici si nécessaire...
+        messages.info(
+            request, f"Candidature de {candidature.freelance.username} refusée."
+        )
     else:
         messages.warning(request, "Cette candidature n'est plus en attente.")
 
-    # Rediriger vers la liste des candidatures de cette mission
-    return redirect('missions:view_candidatures', mission_pk=mission.pk)
-# messaging/views.py
-# ... (autres vues) ...
+    return redirect("missions:view_candidatures", mission_pk=mission.pk)
+
 
 @login_required
 def start_conversation_view(request, user_pk):
     """Trouve ou crée une conversation 1-1 avec un autre utilisateur."""
+    from messaging.models import Conversation  # Import here to avoid circular import
+
     target_user = get_object_or_404(User, pk=user_pk)
     current_user = request.user
 
-    # Empêcher de démarrer une conversation avec soi-même
     if target_user == current_user:
-        messages.warning(request, "Vous ne pouvez pas démarrer une conversation avec vous-même.")
-        # Rediriger vers une page appropriée, ex: la liste des conversations ou le profil
-        return redirect('messaging:list')
+        messages.warning(
+            request, "Vous ne pouvez pas démarrer une conversation avec vous-même."
+        )
+        return redirect("messaging:list")
 
-    # Chercher une conversation existante *uniquement* entre ces deux utilisateurs
-    # On utilise annotate pour compter les participants et s'assurer qu'il y en a exactement 2
-    conversation = Conversation.objects.annotate(
-        num_participants=Count('participants')
-    ).filter(
-        participants=current_user
-    ).filter(
-        participants=target_user
-    ).filter(
-        num_participants=2
-    ).first() # Prend la première trouvée s'il y en a
+    conversation = (
+        Conversation.objects.annotate(num_participants=Count("participants"))
+        .filter(participants=current_user)
+        .filter(participants=target_user)
+        .filter(num_participants=2)
+        .first()
+    )
 
-    # Si aucune conversation 1-1 n'existe, on en crée une nouvelle
     if conversation is None:
         conversation = Conversation.objects.create()
         conversation.participants.add(current_user, target_user)
-        # Pas besoin de save() après .add() pour ManyToMany si l'objet principal existe déjà
-        messages.success(request, f"Nouvelle conversation démarrée avec {target_user.username}.")
+        messages.success(
+            request, f"Nouvelle conversation démarrée avec {target_user.username}."
+        )
 
-    # Rediriger vers la page détail de la conversation (existante ou nouvelle)
-    return redirect('messaging:detail', pk=conversation.pk)
+    return redirect("messaging:detail", pk=conversation.pk)
+
 
 @login_required
 def leave_evaluation_view(request, mission_pk):
     mission = get_object_or_404(Mission, pk=mission_pk)
     user = request.user
-
-    # Déterminer qui est l'évaluateur et qui est l'évalué
-    # C'est ici que la logique de qui peut évaluer qui pour une mission se précise.
-    # Simplifions : si l'utilisateur est le client, il évalue le freelance assigné.
-    # Si l'utilisateur est le freelance assigné, il évalue le client.
 
     evaluateur = user
     evalue = None
@@ -313,26 +294,22 @@ def leave_evaluation_view(request, mission_pk):
     elif user == mission.freelance_assigne:
         evalue = mission.client
     else:
-        # L'utilisateur n'est ni le client ni le freelance assigné, ou le freelance n'est pas encore assigné
-        messages.error(request, "Vous ne pouvez pas évaluer cette mission dans son état actuel ou vous n'êtes pas concerné.")
-        return redirect('missions:detail', pk=mission.pk)
+        messages.error(
+            request,
+            "Vous ne pouvez pas évaluer cette mission dans son état actuel ou vous n'êtes pas concerné.",
+        )
+        return redirect("missions:detail", pk=mission.pk)
 
-    # Vérifier si une évaluation existe déjà par cet évaluateur pour cette mission
-    # En utilisant unique_together = ('mission', 'evaluateur') dans le modèle Evaluation
-    existing_evaluation = Evaluation.objects.filter(mission=mission, evaluateur=evaluateur).first()
+    existing_evaluation = Evaluation.objects.filter(
+        mission=mission, evaluateur=evaluateur
+    ).first()
     if existing_evaluation:
-        messages.warning(request, f"Vous avez déjà évalué {evalue.username} pour cette mission.")
-        # Optionnel: rediriger vers une vue pour modifier l'évaluation existante ?
-        # Pour l'instant, on bloque une nouvelle évaluation.
-        return redirect('missions:detail', pk=mission.pk)
+        messages.warning(
+            request, f"Vous avez déjà évalué {evalue.username} pour cette mission."
+        )
+        return redirect("missions:detail", pk=mission.pk)
 
-    # Vérifier si la mission est dans un statut où l'évaluation est pertinente
-    # Par exemple, seulement si la mission est 'COMPLETED' ou 'CLOSED'
-    # if mission.statut not in [MissionStatus.COMPLETED, MissionStatus.CLOSED]:
-    #     messages.info(request, "L'évaluation pour cette mission n'est pas encore disponible.")
-    #     return redirect('missions:detail', pk=mission.pk)
-
-    if request.method == 'POST':
+    if request.method == "POST":
         form = EvaluationForm(request.POST)
         if form.is_valid():
             evaluation = form.save(commit=False)
@@ -340,16 +317,334 @@ def leave_evaluation_view(request, mission_pk):
             evaluation.evaluateur = evaluateur
             evaluation.evalue = evalue
             evaluation.save()
-            messages.success(request, f"Merci ! Votre évaluation pour {evalue.username} a été enregistrée.")
-            return redirect('missions:detail', pk=mission.pk) # Ou vers la page de profil de l'évalué
+            messages.success(
+                request,
+                f"Merci ! Votre évaluation pour {evalue.username} a été enregistrée.",
+            )
+            return redirect("missions:detail", pk=mission.pk)
         else:
-            messages.error(request, "Erreur dans le formulaire d'évaluation. Veuillez corriger.")
-    else: # GET
+            messages.error(
+                request, "Erreur dans le formulaire d'évaluation. Veuillez corriger."
+            )
+    else:
         form = EvaluationForm()
 
     context = {
-        'form': form,
-        'mission': mission,
-        'person_to_evaluate': evalue, # Pour afficher à qui s'adresse l'évaluation
+        "form": form,
+        "mission": mission,
+        "person_to_evaluate": evalue,
     }
-    return render(request, 'missions/evaluation_form.html', context)
+    return render(request, "missions/evaluation_form.html", context)
+
+
+# Ajoutez ces vues à missions/views.py
+
+
+@login_required
+def mission_tracking_dashboard(request):
+    """Tableau de bord de suivi des missions"""
+    user = request.user
+    form = MissionTrackingFilterForm(request.GET or None)
+
+    # Missions où l'utilisateur est impliqué (client ou freelance)
+    missions_queryset = (
+        Mission.objects.filter(Q(client=user) | Q(freelance_assigne=user))
+        .select_related("client", "freelance_assigne")
+        .prefetch_related("progress", "milestones", "status_updates")
+    )
+
+    # Appliquer les filtres
+    if form.is_valid():
+        statut = form.cleaned_data.get("statut")
+        date_debut = form.cleaned_data.get("date_debut")
+        date_fin = form.cleaned_data.get("date_fin")
+        retard_uniquement = form.cleaned_data.get("retard_uniquement")
+
+        if statut:
+            missions_queryset = missions_queryset.filter(statut=statut)
+        if date_debut:
+            missions_queryset = missions_queryset.filter(
+                date_publication__gte=date_debut
+            )
+        if date_fin:
+            missions_queryset = missions_queryset.filter(date_publication__lte=date_fin)
+        if retard_uniquement:
+            # Missions avec des jalons en retard
+            today = timezone.now().date()
+            missions_queryset = missions_queryset.filter(
+                milestones__date_prevue__lt=today, milestones__est_complete=False
+            ).distinct()
+
+    missions = missions_queryset.order_by("-date_publication")
+
+    # Ajouter le calcul des jalons complétés pour chaque mission
+    # Utiliser un nom d'attribut différent de la propriété
+    for mission in missions:
+        mission.completed_count = mission.milestones.filter(est_complete=True).count()
+
+    # Statistiques
+    stats = {
+        "total_missions": missions.count(),
+        "missions_en_cours": missions.filter(statut="IN_PROGRESS").count(),
+        "missions_completees": missions.filter(statut="COMPLETED").count(),
+        "missions_en_retard": missions.filter(
+            milestones__date_prevue__lt=timezone.now().date(),
+            milestones__est_complete=False,
+        )
+        .distinct()
+        .count(),
+    }
+
+    # Calcul de l'avancement moyen
+    avg_progress = (
+        missions.filter(progress__isnull=False).aggregate(
+            avg=Avg("progress__pourcentage_completion")
+        )["avg"]
+        or 0
+    )
+
+    context = {
+        "missions": missions,
+        "filter_form": form,
+        "stats": stats,
+        "avg_progress": round(avg_progress, 1),
+    }
+    return render(request, "missions/tracking_dashboard.html", context)
+
+
+@login_required
+def mission_tracking_detail(request, pk):
+    """Page détaillée de suivi d'une mission"""
+    mission = get_object_or_404(Mission, pk=pk)
+
+    # Vérifier les permissions
+    if not (
+        mission.client == request.user or mission.freelance_assigne == request.user
+    ):
+        messages.error(request, "Vous n'avez pas accès au suivi de cette mission.")
+        return redirect("missions:list")
+
+    # Obtenir ou créer le suivi de progression
+    progress, created = MissionProgress.objects.get_or_create(
+        mission=mission,
+        defaults={"pourcentage_completion": 0, "mise_a_jour_par": request.user},
+    )
+
+    # Récupérer les données de suivi
+    milestones = mission.milestones.all().order_by("ordre", "date_prevue")
+    comments = (
+        mission.comments.filter(Q(auteur=request.user) | Q(est_prive=False))
+        .select_related("auteur")
+        .order_by("-date_creation")
+    )
+    status_updates = mission.status_updates.all().select_related("auteur")[:10]
+
+    # Déterminer le rôle de l'utilisateur
+    user_role = "client" if mission.client == request.user else "freelance"
+
+    context = {
+        "mission": mission,
+        "progress": progress,
+        "milestones": milestones,
+        "comments": comments,
+        "status_updates": status_updates,
+        "user_role": user_role,
+        "can_edit_progress": user_role == "freelance" or mission.client == request.user,
+        "can_change_status": True,  # Les deux parties peuvent proposer des changements
+    }
+    return render(request, "missions/tracking_detail.html", context)
+
+
+@login_required
+def update_mission_progress(request, pk):
+    """Mettre à jour le pourcentage d'avancement"""
+    mission = get_object_or_404(Mission, pk=pk)
+
+    # Vérifier les permissions (généralement le freelance)
+    if not (
+        mission.freelance_assigne == request.user or mission.client == request.user
+    ):
+        messages.error(request, "Vous n'êtes pas autorisé à modifier cette mission.")
+        return redirect("missions:detail", pk=pk)
+
+    progress, created = MissionProgress.objects.get_or_create(
+        mission=mission, defaults={"mise_a_jour_par": request.user}
+    )
+
+    if request.method == "POST":
+        form = MissionProgressForm(request.POST, instance=progress)
+        if form.is_valid():
+            progress = form.save(commit=False)
+            progress.mise_a_jour_par = request.user
+            progress.save()
+            messages.success(request, "Progression mise à jour avec succès!")
+            return redirect("missions:tracking_detail", pk=mission.pk)
+    else:
+        form = MissionProgressForm(instance=progress)
+
+    context = {
+        "form": form,
+        "mission": mission,
+        "progress": progress,
+    }
+    return render(request, "missions/update_progress.html", context)
+
+
+@login_required
+def update_mission_status(request, pk):
+    """Changer le statut d'une mission"""
+    mission = get_object_or_404(Mission, pk=pk)
+
+    # Vérifier les permissions
+    if not (
+        mission.client == request.user or mission.freelance_assigne == request.user
+    ):
+        messages.error(request, "Vous n'êtes pas autorisé à modifier cette mission.")
+        return redirect("missions:detail", pk=pk)
+
+    user_role = "client" if mission.client == request.user else "freelance"
+
+    if request.method == "POST":
+        form = MissionStatusUpdateForm(
+            request.POST, current_status=mission.statut, user_role=user_role
+        )
+        if form.is_valid():
+            status_update = form.save(commit=False)
+            status_update.mission = mission
+            status_update.ancien_statut = mission.statut
+            status_update.auteur = request.user
+
+            # Mettre à jour le statut de la mission
+            mission.statut = status_update.nouveau_statut
+            mission.save()
+            status_update.save()
+
+            messages.success(
+                request,
+                f"Statut changé de '{mission.get_statut_display()}' vers '{status_update.get_nouveau_statut_display()}'",
+            )
+            return redirect("missions:tracking_detail", pk=mission.pk)
+    else:
+        form = MissionStatusUpdateForm(
+            current_status=mission.statut, user_role=user_role
+        )
+
+    context = {
+        "form": form,
+        "mission": mission,
+        "user_role": user_role,
+    }
+    return render(request, "missions/update_status.html", context)
+
+
+@login_required
+def add_milestone(request, pk):
+    """Ajouter un jalon à une mission"""
+    mission = get_object_or_404(Mission, pk=pk)
+
+    # Seuls le client et le freelance assigné peuvent ajouter des jalons
+    if not (
+        mission.client == request.user or mission.freelance_assigne == request.user
+    ):
+        messages.error(request, "Vous n'êtes pas autorisé à ajouter des jalons.")
+        return redirect("missions:tracking_detail", pk=pk)
+
+    if request.method == "POST":
+        form = MissionMilestoneForm(request.POST)
+        if form.is_valid():
+            milestone = form.save(commit=False)
+            milestone.mission = mission
+            milestone.created_by = request.user
+            milestone.save()
+            messages.success(request, "Jalon ajouté avec succès!")
+            return redirect("missions:tracking_detail", pk=mission.pk)
+    else:
+        # Définir l'ordre par défaut
+        next_order = mission.milestones.count() + 1
+        form = MissionMilestoneForm(initial={"ordre": next_order})
+
+    context = {
+        "form": form,
+        "mission": mission,
+    }
+    return render(request, "missions/add_milestone.html", context)
+
+
+@login_required
+def toggle_milestone(request, pk, milestone_id):
+    """Basculer l'état d'un jalon (complété/non complété)"""
+    mission = get_object_or_404(Mission, pk=pk)
+    milestone = get_object_or_404(MissionMilestone, id=milestone_id, mission=mission)
+
+    if not (
+        mission.client == request.user or mission.freelance_assigne == request.user
+    ):
+        return JsonResponse({"error": "Permission refusée"}, status=403)
+
+    if request.method == "POST":
+        data = json.loads(request.body)
+        milestone.est_complete = data.get("est_complete", False)
+        if milestone.est_complete:
+            milestone.date_completion = timezone.now().date()
+        else:
+            milestone.date_completion = None
+        milestone.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "est_complete": milestone.est_complete,
+                "date_completion": (
+                    milestone.date_completion.isoformat()
+                    if milestone.date_completion
+                    else None
+                ),
+            }
+        )
+
+    return JsonResponse({"error": "Méthode non autorisée"}, status=405)
+
+
+@login_required
+def add_comment(request, pk):
+    """Ajouter un commentaire à une mission"""
+    mission = get_object_or_404(Mission, pk=pk)
+
+    if not (
+        mission.client == request.user or mission.freelance_assigne == request.user
+    ):
+        messages.error(request, "Vous n'êtes pas autorisé à commenter cette mission.")
+        return redirect("missions:detail", pk=pk)
+
+    if request.method == "POST":
+        form = MissionCommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.mission = mission
+            comment.auteur = request.user
+            comment.save()
+            messages.success(request, "Commentaire ajouté!")
+            return redirect("missions:tracking_detail", pk=mission.pk)
+    else:
+        form = MissionCommentForm()
+
+    # Si c'est une requête AJAX, retourner JSON
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        if request.method == "POST" and form.is_valid():
+            return JsonResponse(
+                {
+                    "success": True,
+                    "comment_html": render_to_string(
+                        "missions/comment_item.html",
+                        {"comment": comment, "user": request.user},
+                    ),
+                }
+            )
+        else:
+            return JsonResponse({"success": False, "errors": form.errors})
+
+    context = {
+        "form": form,
+        "mission": mission,
+    }
+    return render(request, "missions/add_comment.html", context)

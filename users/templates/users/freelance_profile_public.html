@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}{{ freelance_user.get_full_name|default:freelance_user.username }} - Freelance{% endblock %}
+
+{% block content %}
+  <div class="profile-container">
+    {# Header du profil #}
+    <div class="profile-header">
+      <div class="profile-basic-info">
+        <h2>{{ freelance_user.get_full_name|default:freelance_user.username }}</h2>
+        <h3 class="professional-title">{{ freelance_profile.titre_professionnel }}</h3>
+        
+        <div class="profile-meta">
+          {% if freelance_profile.taux_journalier %}
+            <span class="rate">{{ freelance_profile.taux_journalier }} €/jour</span>
+          {% endif %}
+          
+          {% if freelance_profile.disponibilite %}
+            <span class="availability">{{ freelance_profile.disponibilite }}</span>
+          {% endif %}
+          
+          {% if note_moyenne %}
+            <span class="rating">
+              ⭐ {{ note_moyenne }}/5 ({{ total_evaluations }} avis)
+            </span>
+          {% endif %}
+        </div>
+      </div>
+      
+      <div class="profile-actions">
+        {% if user != freelance_user %}
+          <a href="{% url 'messaging:start_conversation' freelance_user.id %}" class="button">
+            💬 Contacter
+          </a>
+        {% endif %}
+        <a href="{% url 'users:freelance_search' %}" class="button button-secondary">
+          ← Retour à la recherche
+        </a>
+      </div>
+    </div>
+
+    <div class="profile-content">
+      {# Compétences #}
+      {% if freelance_profile.competences %}
+        <section class="profile-section">
+          <h4>🛠️ Compétences</h4>
+          <div class="competences-tags">
+            {% for competence in freelance_profile.competences|linebreaks|split:',' %}
+              {% if competence.strip %}
+                <span class="competence-tag">{{ competence.strip }}</span>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {# Expérience #}
+      {% if freelance_profile.experience %}
+        <section class="profile-section">
+          <h4>💼 Expérience</h4>
+          <div class="experience-text">
+            {{ freelance_profile.experience|linebreaksbr }}
+          </div>
+        </section>
+      {% endif %}
+
+      {# Portfolio #}
+      {% if freelance_profile.portfolio_url %}
+        <section class="profile-section">
+          <h4>🎨 Portfolio</h4>
+          <p>
+            <a href="{{ freelance_profile.portfolio_url }}" target="_blank" class="portfolio-link">
+              Voir mon portfolio →
+            </a>
+          </p>
+        </section>
+      {% endif %}
+
+      {# Missions récentes #}
+      {% if missions_terminees %}
+        <section class="profile-section">
+          <h4>📋 Missions récentes</h4>
+          <div class="missions-list">
+            {% for mission in missions_terminees %}
+              <div class="mission-item">
+                <h5>
+                  <a href="{% url 'missions:detail' mission.id %}">{{ mission.titre }}</a>
+                </h5>
+                <p class="mission-description">{{ mission.description|truncatewords:20 }}</p>
+                <small class="mission-date">{{ mission.date_publication|date:"M Y" }}</small>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {# Évaluations #}
+      {% if evaluations_recues %}
+        <section class="profile-section">
+          <h4>⭐ Évaluations reçues</h4>
+          <div class="evaluations-list">
+            {% for evaluation in evaluations_recues %}
+              <div class="evaluation-item">
+                <div class="evaluation-header">
+                  <span class="stars">
+                    {% for i in "12345" %}
+                      {% if forloop.counter <= evaluation.note %}★{% else %}☆{% endif %}
+                    {% endfor %}
+                  </span>
+                  <span class="evaluator">par {{ evaluation.evaluateur.username }}</span>
+                  <span class="date">{{ evaluation.date_evaluation|date:"d/m/Y" }}</span>
+                </div>
+                
+                <p class="mission-title">
+                  Mission : <a href="{% url 'missions:detail' evaluation.mission.id %}">{{ evaluation.mission.titre }}</a>
+                </p>
+                
+                {% if evaluation.commentaire %}
+                  <blockquote class="evaluation-comment">
+                    "{{ evaluation.commentaire|linebreaksbr }}"
+                  </blockquote>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {# Contact Info (si disponible) #}
+      {% if freelance_profile.adresse or freelance_profile.telephone %}
+        <section class="profile-section contact-section">
+          <h4>📍 Informations de contact</h4>
+          {% if freelance_profile.adresse %}
+            <p><strong>Localisation :</strong> {{ freelance_profile.adresse }}</p>
+          {% endif %}
+          {% if freelance_profile.telephone %}
+            <p><strong>Téléphone :</strong> {{ freelance_profile.telephone }}</p>
+          {% endif %}
+        </section>
+      {% endif %}
+    </div>
+  </div>
+
+  <style>
+    .profile-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .profile-header {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        margin-bottom: 2em;
+        border: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 1.5em;
+    }
+    
+    .profile-basic-info h2 {
+        margin: 0 0 0.5em 0;
+        color: var(--accent-color);
+    }
+    
+    .professional-title {
+        color: var(--text-secondary);
+        margin: 0 0 1em 0;
+        font-style: italic;
+        font-weight: normal;
+    }
+    
+    .profile-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1em;
+        font-size: 0.9rem;
+    }
+    
+    .profile-meta span {
+        background-color: var(--bg-color);
+        padding: 0.4em 0.8em;
+        border-radius: 20px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .rate {
+        color: var(--accent-color);
+        font-weight: 600;
+    }
+    
+    .availability {
+        color: #4caf50;
+    }
+    
+    .rating {
+        color: #ff9800;
+    }
+    
+    .profile-actions {
+        display: flex;
+        gap: 0.5em;
+        flex-wrap: wrap;
+    }
+    
+    .profile-content {
+        display: grid;
+        gap: 2em;
+    }
+    
+    .profile-section {
+        background-color: var(--surface-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .profile-section h4 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+        font-size: 1.1rem;
+    }
+    
+    .competences-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5em;
+    }
+    
+    .competence-tag {
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+        padding: 0.3em 0.8em;
+        border-radius: 15px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .experience-text {
+        line-height: 1.6;
+        color: var(--text-color);
+    }
+    
+    .portfolio-link {
+        color: var(--accent-color);
+        font-weight: 500;
+        text-decoration: none;
+        border: 1px solid var(--accent-color);
+        padding: 0.5em 1em;
+        border-radius: 5px;
+        display: inline-block;
+        transition: all 0.2s ease;
+    }
+    
+    .portfolio-link:hover {
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+    }
+    
+    .missions-list {
+        display: grid;
+        gap: 1em;
+    }
+    
+    .mission-item {
+        padding: 1em;
+        background-color: var(--bg-color);
+        border-radius: 6px;
+        border-left: 3px solid var(--accent-color);
+    }
+    
+    .mission-item h5 {
+        margin: 0 0 0.5em 0;
+    }
+    
+    .mission-item h5 a {
+        color: var(--accent-color);
+        text-decoration: none;
+    }
+    
+    .mission-description {
+        margin: 0.5em 0;
+        color: var(--text-secondary);
+    }
+    
+    .mission-date {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+    }
+    
+    .evaluations-list {
+        display: grid;
+        gap: 1.5em;
+    }
+    
+    .evaluation-item {
+        padding: 1.5em;
+        background-color: var(--bg-color);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .evaluation-header {
+        display: flex;
+        align-items: center;
+        gap: 1em;
+        margin-bottom: 0.5em;
+        flex-wrap: wrap;
+    }
+    
+    .stars {
+        color: #ff9800;
+        font-size: 1.1rem;
+    }
+    
+    .evaluator {
+        color: var(--accent-color);
+        font-weight: 500;
+    }
+    
+    .date {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        margin-left: auto;
+    }
+    
+    .mission-title {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin: 0.5em 0;
+    }
+    
+    .evaluation-comment {
+        background-color: var(--surface-color);
+        border-left: 3px solid var(--accent-color);
+        padding: 1em;
+        margin: 1em 0 0 0;
+        font-style: italic;
+        border-radius: 0 6px 6px 0;
+    }
+    
+    .contact-section {
+        background-color: rgba(77, 208, 225, 0.1);
+        border-left: 4px solid var(--accent-color);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .profile-header {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .profile-actions {
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .evaluation-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5em;
+        }
+        
+        .date {
+            margin-left: 0;
+        }
+    }
+  </style>
+
+{% endblock %}

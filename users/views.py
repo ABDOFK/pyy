@@ -1,44 +1,34 @@
-# users/views.py
-# ... (imports existants)
-from .forms import FreelanceProfileForm, ClientProfileForm # Ajoutez ceux-là
-from .models import FreelanceProfile, ClientProfile # Et ceux-là
-from django.shortcuts import get_object_or_404 # Utile, mais pas strictement nécessaire avec notre approche
-# users/views.py
-from django.shortcuts import render, redirect
+# users/views.py - Version complète
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
-from django.contrib import messages # Pour afficher des messages flash
-from django.contrib.auth.decorators import login_required # Pour protéger certaines vues
-
-# Importez vos formulaires personnalisés (si vous les utilisez)
-# from .forms import CustomUserCreationForm, CustomAuthenticationForm
-# Ou les formulaires par défaut/personnalisés :
-from .forms import CustomUserCreationForm
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
-from missions.models import Evaluation
+from django.contrib.auth.models import User
+from django.db.models import Q
 
+from .forms import CustomUserCreationForm, FreelanceProfileForm, ClientProfileForm, FreelanceSearchForm
+from .models import FreelanceProfile, ClientProfile
+from missions.models import Evaluation, Mission
 
 def register_view(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save() # Crée et sauvegarde le nouvel utilisateur
-            # login(request, user) # Connecte l'utilisateur automatiquement après inscription (optionnel)
+            user = form.save()
             messages.success(request, "Inscription réussie ! Vous pouvez maintenant vous connecter.")
-            return redirect('users:login') # Redirige vers la page de connexion
+            return redirect('users:login')
         else:
-            # Si le formulaire n'est pas valide, les erreurs seront dans form.errors
             messages.error(request, "Erreur lors de l'inscription. Veuillez corriger les erreurs ci-dessous.")
-    else: # Si c'est une requête GET (accès initial à la page)
+    else:
         form = CustomUserCreationForm()
     return render(request, 'users/register.html', {'form': form})
 
-
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect('home') # Ou une page de tableau de bord, si l'utilisateur est déjà connecté
+        return redirect('home')
 
     if request.method == 'POST':
-        # Utilisez AuthenticationForm directement ou votre CustomAuthenticationForm
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             username = form.cleaned_data.get('username')
@@ -47,51 +37,40 @@ def login_view(request):
             if user is not None:
                 login(request, user)
                 messages.info(request, f"Bienvenue {username}.")
-                # Rediriger vers une page 'next' si elle existe (souvent utilisé par @login_required)
-                next_url = request.POST.get('next', '/') # Redirige vers la page d'accueil par défaut
-                # Ou rediriger vers un tableau de bord spécifique : return redirect('dashboard')
-                return redirect(next_url or 'home') # 'home' est un nom d'URL qu'on définira plus tard
+                next_url = request.POST.get('next', '/')
+                return redirect(next_url or 'home')
             else:
                 messages.error(request,"Nom d'utilisateur ou mot de passe incorrect.")
         else:
             messages.error(request,"Nom d'utilisateur ou mot de passe incorrect.")
-    else: # Requête GET
+    else:
         form = AuthenticationForm()
-        # Récupérer le paramètre 'next' s'il existe (pour la redirection après login)
         next_url = request.GET.get('next', '')
     return render(request, 'users/login.html', {'form': form, 'next': next_url})
 
-
-
-# La vue de déconnexion est simple
 def logout_view(request):
     logout(request)
     messages.info(request, "Vous avez été déconnecté.")
-    return redirect('home') # Redirige vers la page d'accueil
-# users/views.py
-# ... (vues register, login, logout)
+    return redirect('home')
 
 @login_required
 def update_freelance_profile(request):
-    # Essayer de récupérer le profil existant, ou None s'il n'existe pas
     try:
         profile_instance = request.user.freelance_profile
     except FreelanceProfile.DoesNotExist:
         profile_instance = None
 
     if request.method == 'POST':
-        # Passer 'instance=profile_instance' pour pré-remplir si modification,
-        # ou pour lier correctement lors de la création si profile_instance est None.
-        form = FreelanceProfileForm(request.POST, request.FILES or None, instance=profile_instance) # request.FILES pour les uploads (ex: photo)
+        form = FreelanceProfileForm(request.POST, request.FILES or None, instance=profile_instance)
         if form.is_valid():
-            profile = form.save(commit=False) # Ne sauvegarde pas encore en BDD
-            profile.user = request.user      # Lie le profil à l'utilisateur connecté
-            profile.save()                   # Sauvegarde en BDD
+            profile = form.save(commit=False)
+            profile.user = request.user
+            profile.save()
             messages.success(request, "Profil Freelance mis à jour avec succès !")
-            return redirect('users:profile') # Redirige vers la page de profil principale
+            return redirect('users:profile')
         else:
             messages.error(request, "Erreur lors de la mise à jour du profil.")
-    else: # Requête GET
+    else:
         form = FreelanceProfileForm(instance=profile_instance)
 
     context = {
@@ -102,7 +81,6 @@ def update_freelance_profile(request):
 
 @login_required
 def update_client_profile(request):
-    # Logique similaire pour le profil Client
     try:
         profile_instance = request.user.client_profile
     except ClientProfile.DoesNotExist:
@@ -118,7 +96,7 @@ def update_client_profile(request):
             return redirect('users:profile')
         else:
             messages.error(request, "Erreur lors de la mise à jour du profil.")
-    else: # Requête GET
+    else:
         form = ClientProfileForm(instance=profile_instance)
 
     context = {
@@ -127,44 +105,98 @@ def update_client_profile(request):
     }
     return render(request, 'users/profile_form.html', context)
 
-# Modifions la vue de profil principale pour afficher les infos et les liens
 @login_required
 def profile_view(request):
-    # Récupérer les profils (ils seront None s'ils n'existent pas)
     freelance_profile = getattr(request.user, 'freelance_profile', None)
     client_profile = getattr(request.user, 'client_profile', None)
+    evaluations_recues = Evaluation.objects.filter(evalue=request.user).order_by('-date_evaluation')
 
     context = {
         'user': request.user,
         'freelance_profile': freelance_profile,
         'client_profile': client_profile,
-    }
-    return render(request, 'users/profile.html', context) # On utilise le template profile.html existant
-# Exemple de vue protégée (nécessite d'être connecté)
-@login_required # Ce décorateur redirige vers la page de login si l'utilisateur n'est pas connecté
-def profile_view(request):
-    # Ici, vous récupéreriez le profil Freelance ou Client de request.user
-    # freelance_profile = getattr(request.user, 'freelance_profile', None)
-    # client_profile = getattr(request.user, 'client_profile', None)
-    # context = {'freelance_profile': freelance_profile, 'client_profile': client_profile}
-    # Pour l'instant, juste un exemple simple
-    return render(request, 'users/profile.html') # Créez ce template plus tard
-
-@login_required
-
-def profile_view(request):
-    # --- PROBLÈME PROBABLE ICI ---
-    # Vous devez DÉFINIR ces variables AVANT de les utiliser dans le 'context'
-    freelance_profile = getattr(request.user, 'freelance_profile', None) # Définition
-    client_profile = getattr(request.user, 'client_profile', None)      # Définition
-    # --- FIN PROBLÈME PROBABLE ---
-    
-    evaluations_recues = Evaluation.objects.filter(evalue=request.user).order_by('-date_evaluation')
-
-    context = {
-        'user': request.user,
-        'freelance_profile': freelance_profile, # Utilisation
-        'client_profile': client_profile,      # Utilisation
         'evaluations_recues': evaluations_recues,
     }
     return render(request, 'users/profile.html', context)
+
+@login_required
+def freelance_search_view(request):
+    """Permet aux clients de rechercher des freelances."""
+    queryset = FreelanceProfile.objects.filter(
+        titre_professionnel__isnull=False
+    ).exclude(
+        titre_professionnel__exact=''
+    ).select_related('user').order_by('-id')
+    
+    form = FreelanceSearchForm(request.GET or None)
+    
+    if form.is_valid():
+        keywords = form.cleaned_data.get('keywords')
+        competences = form.cleaned_data.get('competences')
+        taux_min = form.cleaned_data.get('taux_min')
+        taux_max = form.cleaned_data.get('taux_max')
+        disponibilite = form.cleaned_data.get('disponibilite')
+        
+        if keywords:
+            queryset = queryset.filter(
+                Q(titre_professionnel__icontains=keywords) | 
+                Q(experience__icontains=keywords) |
+                Q(user__first_name__icontains=keywords) |
+                Q(user__last_name__icontains=keywords)
+            )
+        
+        if competences:
+            competences_list = [comp.strip() for comp in competences.split(',') if comp.strip()]
+            for comp_item in competences_list:
+                queryset = queryset.filter(competences__icontains=comp_item)
+        
+        if taux_min:
+            queryset = queryset.filter(taux_journalier__gte=taux_min)
+        if taux_max:
+            queryset = queryset.filter(taux_journalier__lte=taux_max)
+        
+        if disponibilite:
+            queryset = queryset.filter(disponibilite__icontains=disponibilite)
+    
+    context = {
+        'freelances': queryset,
+        'search_form': form,
+        'total_count': queryset.count(),
+    }
+    return render(request, 'users/freelance_search.html', context)
+
+@login_required  
+def freelance_profile_view(request, user_id):
+    """Affiche le profil public d'un freelance."""
+    freelance_user = get_object_or_404(User, id=user_id)
+    
+    try:
+        freelance_profile = freelance_user.freelance_profile
+    except FreelanceProfile.DoesNotExist:
+        messages.error(request, "Ce freelance n'a pas de profil public.")
+        return redirect('users:freelance_search')
+    
+    evaluations_recues = Evaluation.objects.filter(
+        evalue=freelance_user
+    ).select_related('evaluateur', 'mission').order_by('-date_evaluation')[:5]
+    
+    if evaluations_recues:
+        note_moyenne = sum(eval.note for eval in evaluations_recues) / len(evaluations_recues)
+        note_moyenne = round(note_moyenne, 1)
+    else:
+        note_moyenne = None
+    
+    missions_terminees = Mission.objects.filter(
+        freelance_assigne=freelance_user,
+        statut__in=['COMPLETED', 'CLOSED']
+    ).order_by('-date_publication')[:3]
+    
+    context = {
+        'freelance_user': freelance_user,
+        'freelance_profile': freelance_profile,
+        'evaluations_recues': evaluations_recues,
+        'note_moyenne': note_moyenne,
+        'missions_terminees': missions_terminees,
+        'total_evaluations': len(evaluations_recues),
+    }
+    return render(request, 'users/freelance_profile_public.html', context)

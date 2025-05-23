@@ -3,18 +3,241 @@
 {% block title %}Accueil - FreelanceHub{% endblock %}
 
 {% block content %}
-  <h2>Bienvenue sur FreelanceHub !</h2>
-  <p>La plateforme pour connecter clients et freelances.</p>
+  <div class="home-container">
+    <div class="hero-section">
+      <h2>Bienvenue sur FreelanceHub ! 🚀</h2>
+      <p class="hero-subtitle">La plateforme qui connecte clients et freelances pour des projets réussis.</p>
 
-  {% if not user.is_authenticated %}
-  <p>
-    <a href="{% url 'users:register' %}">Inscrivez-vous</a> ou
-    <a href="{% url 'users:login' %}">Connectez-vous</a> pour commencer.
-  </p>
-  {% else %}
-  <p>Vous êtes connecté en tant que {{ user.username }}.</p>
-  <p><a href="{% url 'users:profile' %}">Voir mon profil (exemple)</a></p>
-  {% endif %}
-  <hr>
-  <p>Explorez les <a href="#">missions disponibles</a> ou <a href="#">trouvez des freelances</a>.</p> {# Liens à faire plus tard #}
+      {% if not user.is_authenticated %}
+        <div class="cta-buttons">
+          <a href="{% url 'users:register' %}" class="button">Rejoindre FreelanceHub</a>
+          <a href="{% url 'users:login' %}" class="button button-secondary">Se connecter</a>
+        </div>
+      {% else %}
+        <div class="welcome-user">
+          <p>Ravi de vous revoir, <strong>{{ user.username }}</strong> ! 👋</p>
+          <div class="quick-actions">
+            <a href="{% url 'users:profile' %}" class="button button-secondary">Mon Profil</a>
+            <a href="{% url 'messaging:list' %}" class="button button-secondary">Mes Messages</a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="features-section">
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">💼</div>
+          <h3>Pour les Clients</h3>
+          <p>Trouvez le freelance parfait pour votre projet</p>
+          <div class="feature-links">
+            <a href="{% url 'missions:create' %}" class="feature-link">📝 Publier une mission</a>
+            <a href="{% url 'users:freelance_search' %}" class="feature-link">🔍 Rechercher des freelances</a>
+            <a href="{% url 'missions:list' %}" class="feature-link">👀 Voir toutes les missions</a>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3>Pour les Freelances</h3>
+          <p>Décrochez votre prochain contrat facilement</p>
+          <div class="feature-links">
+            <a href="{% url 'missions:list' %}" class="feature-link">🎯 Trouver des missions</a>
+            <a href="{% url 'missions:my_applications' %}" class="feature-link">📋 Mes candidatures</a>
+            <a href="{% url 'users:profile' %}" class="feature-link">👤 Compléter mon profil</a>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">💬</div>
+          <h3>Communication</h3>
+          <p>Échangez facilement avec vos partenaires</p>
+          <div class="feature-links">
+            <a href="{% url 'messaging:list' %}" class="feature-link">💌 Mes conversations</a>
+            <a href="{% url 'users:freelance_search' %}" class="feature-link">🤝 Contacter un freelance</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if user.is_authenticated %}
+      <div class="dashboard-section">
+        <h3>Tableau de bord rapide</h3>
+        <div class="dashboard-stats">
+          <div class="stat-card">
+            <div class="stat-number">{{ user.missions_publiees.count }}</div>
+            <div class="stat-label">Mission{{ user.missions_publiees.count|pluralize }} publiée{{ user.missions_publiees.count|pluralize }}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">{{ user.mes_candidatures.count }}</div>
+            <div class="stat-label">Candidature{{ user.mes_candidatures.count|pluralize }} envoyée{{ user.mes_candidatures.count|pluralize }}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">{{ user.conversations.count }}</div>
+            <div class="stat-label">Conversation{{ user.conversations.count|pluralize }}</div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <style>
+    .home-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .hero-section {
+        text-align: center;
+        padding: 3em 0;
+        background: linear-gradient(135deg, var(--surface-color), var(--bg-color));
+        border-radius: 12px;
+        margin-bottom: 3em;
+        border: 1px solid var(--border-color);
+    }
+    
+    .hero-subtitle {
+        font-size: 1.2rem;
+        color: var(--text-secondary);
+        margin-bottom: 2em;
+    }
+    
+    .cta-buttons {
+        display: flex;
+        gap: 1em;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .welcome-user p {
+        font-size: 1.1rem;
+        margin-bottom: 1.5em;
+    }
+    
+    .quick-actions {
+        display: flex;
+        gap: 1em;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .features-section {
+        margin-bottom: 3em;
+    }
+    
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2em;
+    }
+    
+    .feature-card {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid var(--border-color);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 1em;
+    }
+    
+    .feature-card h3 {
+        color: var(--accent-color);
+        margin: 0 0 1em 0;
+    }
+    
+    .feature-card p {
+        color: var(--text-secondary);
+        margin-bottom: 1.5em;
+    }
+    
+    .feature-links {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5em;
+    }
+    
+    .feature-link {
+        color: var(--accent-color);
+        text-decoration: none;
+        padding: 0.5em;
+        border-radius: 5px;
+        transition: background-color 0.2s ease;
+        font-size: 0.9rem;
+    }
+    
+    .feature-link:hover {
+        background-color: rgba(77, 208, 225, 0.1);
+        text-decoration: none;
+    }
+    
+    .dashboard-section {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .dashboard-section h3 {
+        text-align: center;
+        margin-bottom: 1.5em;
+        color: var(--accent-color);
+    }
+    
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1.5em;
+    }
+    
+    .stat-card {
+        text-align: center;
+        padding: 1.5em;
+        background-color: var(--bg-color);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--accent-color);
+        margin-bottom: 0.5em;
+    }
+    
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .hero-section {
+            padding: 2em 1em;
+        }
+        
+        .cta-buttons, .quick-actions {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .feature-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .dashboard-stats {
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        }
+    }
+  </style>
+
 {% endblock %}

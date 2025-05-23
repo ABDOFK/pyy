@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'users.apps.UsersConfig',
     'missions.apps.MissionsConfig',
-    'payments.apps.PaymentsConfig', 
+    'payments.apps.PaymentsConfig',
+    'messaging.apps.MessagingConfig',  # AJOUTÉ : L'application messaging
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}Recherche de Freelances - FreelanceHub{% endblock %}
+
+{% block content %}
+  <h2>Recherche de Freelances</h2>
+  <p>Trouvez le freelance parfait pour votre projet ({{ total_count }} profil{{ total_count|pluralize }} trouvé{{ total_count|pluralize }})</p>
+
+  {# --- Formulaire de Recherche --- #}
+  <form method="get" action="{% url 'users:freelance_search' %}" class="search-form">
+    <div class="form-row">
+        <div class="form-field">
+            {{ search_form.keywords.label_tag }}
+            {{ search_form.keywords }}
+        </div>
+        <div class="form-field">
+            {{ search_form.competences.label_tag }}
+            {{ search_form.competences }}
+        </div>
+    </div>
+    
+    <div class="form-row">
+        <div class="form-field">
+            {{ search_form.taux_min.label_tag }}
+            {{ search_form.taux_min }}
+        </div>
+        <div class="form-field">
+            {{ search_form.taux_max.label_tag }}
+            {{ search_form.taux_max }}
+        </div>
+        <div class="form-field">
+            {{ search_form.disponibilite.label_tag }}
+            {{ search_form.disponibilite }}
+        </div>
+    </div>
+    
+    <div class="form-actions">
+        <button type="submit" class="button">Rechercher</button>
+        {% if request.GET %}
+            <a href="{% url 'users:freelance_search' %}" class="button button-secondary">Réinitialiser</a>
+        {% endif %}
+    </div>
+    
+    {% if search_form.errors %}
+        <ul class="errorlist">
+            {% for field, errors in search_form.errors.items %}
+                {% for error in errors %}
+                    <li>{{ field|capfirst }}: {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+  </form>
+  <hr>
+  {# --- Fin Formulaire de Recherche --- #}
+
+  {% if freelances %}
+    <div class="freelances-grid">
+      {% for freelance in freelances %}
+        <article class="freelance-card">
+          <div class="freelance-header">
+            <h3>
+              <a href="{% url 'users:freelance_profile' freelance.user.id %}">
+                {{ freelance.user.get_full_name|default:freelance.user.username }}
+              </a>
+            </h3>
+            <span class="freelance-title">{{ freelance.titre_professionnel }}</span>
+          </div>
+          
+          <div class="freelance-info">
+            {% if freelance.taux_journalier %}
+              <p class="taux"><strong>Taux :</strong> {{ freelance.taux_journalier }} €/jour</p>
+            {% endif %}
+            
+            {% if freelance.disponibilite %}
+              <p class="disponibilite">
+                <strong>Disponibilité :</strong> 
+                <span class="status-available">{{ freelance.disponibilite }}</span>
+              </p>
+            {% endif %}
+            
+            {% if freelance.competences %}
+              <p class="competences">
+                <strong>Compétences :</strong> 
+                {{ freelance.competences|truncatewords:10 }}
+              </p>
+            {% endif %}
+            
+            {% if freelance.experience %}
+              <p class="experience">{{ freelance.experience|truncatewords:20 }}</p>
+            {% endif %}
+          </div>
+          
+          <div class="freelance-actions">
+            <a href="{% url 'users:freelance_profile' freelance.user.id %}" class="button button-secondary">
+              Voir le profil complet
+            </a>
+            {% if user != freelance.user %}
+              <a href="{% url 'messaging:start_conversation' freelance.user.id %}" class="button" style="margin-left: 0.5em;">
+                Contacter
+              </a>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    {% if request.GET %}
+        <div class="no-results">
+          <p>Aucun freelance ne correspond à vos critères de recherche.</p>
+          <p>Essayez de :</p>
+          <ul>
+            <li>Élargir vos critères de recherche</li>
+            <li>Vérifier l'orthographe des compétences</li>
+            <li>Utiliser des mots-clés plus généraux</li>
+          </ul>
+        </div>
+    {% else %}
+        <p>Aucun freelance n'est disponible pour le moment.</p>
+    {% endif %}
+  {% endif %}
+
+  <style>
+    .search-form {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 8px;
+        margin-bottom: 2em;
+        border: 1px solid var(--border-color);
+    }
+    
+    .search-form .form-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5em;
+        margin-bottom: 1.5em;
+    }
+    
+    .search-form .form-row:last-of-type {
+        margin-bottom: 1em;
+    }
+    
+    .search-form .form-field {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .search-form .form-field label {
+        display: block;
+        margin-bottom: 0.5em;
+        font-weight: 600;
+        color: var(--text-color);
+        font-size: 0.9rem;
+    }
+    
+    .search-form .form-field input,
+    .search-form .form-field select {
+        width: 100%;
+        padding: 0.75em;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-size: 1rem;
+    }
+    
+    .search-form .form-field input:focus,
+    .search-form .form-field select:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(77, 208, 225, 0.3);
+    }
+    
+    .freelances-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 1.5em;
+        margin-top: 2em;
+    }
+    
+    .freelance-card {
+        background-color: var(--surface-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    
+    .freelance-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .freelance-header {
+        margin-bottom: 1em;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 1em;
+    }
+    
+    .freelance-header h3 {
+        margin: 0 0 0.5em 0;
+        color: var(--accent-color);
+    }
+    
+    .freelance-header h3 a {
+        color: inherit;
+        text-decoration: none;
+    }
+    
+    .freelance-header h3 a:hover {
+        text-decoration: underline;
+    }
+    
+    .freelance-title {
+        color: var(--text-secondary);
+        font-style: italic;
+        font-size: 0.9rem;
+    }
+    
+    .freelance-info {
+        flex-grow: 1;
+        margin-bottom: 1.5em;
+    }
+    
+    .freelance-info p {
+        margin-bottom: 0.8em;
+        font-size: 0.9rem;
+    }
+    
+    .taux {
+        color: var(--accent-color);
+        font-weight: 600;
+    }
+    
+    .status-available {
+        color: #4caf50;
+        font-weight: 500;
+    }
+    
+    .competences {
+        background-color: var(--bg-color);
+        padding: 0.5em;
+        border-radius: 4px;
+        border-left: 3px solid var(--accent-color);
+    }
+    
+    .freelance-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5em;
+        margin-top: auto;
+    }
+    
+    .freelance-actions .button {
+        font-size: 0.9rem;
+        padding: 0.6em 1.2em;
+    }
+    
+    .no-results {
+        text-align: center;
+        padding: 3em 2em;
+        background-color: var(--surface-color);
+        border-radius: 8px;
+        color: var(--text-secondary);
+    }
+    
+    .no-results ul {
+        text-align: left;
+        display: inline-block;
+        margin-top: 1em;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .search-form .form-row {
+            flex-direction: column;
+        }
+        
+        .freelances-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .freelance-actions {
+            flex-direction: column;
+        }
+        
+        .freelance-actions .button {
+            margin-left: 0 !important;
+        }
+    }
+  </style>
+
+{% endblock %}

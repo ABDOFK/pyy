@@ -1,7 +1,9 @@
 # missions/forms.py
 from django import forms
-from .models import Mission, Candidature
-from .models import Mission, Candidature, Evaluation
+from django.core.validators import MinValueValidator, MaxValueValidator
+from .models import (Mission, Candidature, Evaluation, MissionProgress, 
+                    MissionMilestone, MissionComment, MissionStatusUpdate, 
+                    MissionStatus)  # Ajout de MissionStatus
 
 class MissionForm(forms.ModelForm):
     # Utiliser des widgets pour améliorer l'interface
@@ -66,14 +68,6 @@ class CandidatureForm(forms.ModelForm):
              'proposition_tarifaire': "Laissez vide si vous acceptez le budget proposé ou pour discuter.",
         }
 
-    # Optionnel: Ajouter de la validation personnalisée si nécessaire
-    # def clean_budget_propose(self):
-    #     budget = self.cleaned_data.get('budget_propose')
-    #     if budget and budget < 0:
-    #         raise forms.ValidationError("Le budget ne peut pas être négatif.")
-    #     return budget
-
-    
 class EvaluationForm(forms.ModelForm):
     # Personnaliser le champ 'note' pour qu'il soit plus convivial
     # (par exemple, des boutons radio ou un select au lieu d'un simple champ nombre)
@@ -116,8 +110,148 @@ class MissionSearchForm(forms.Form):
         widget=forms.TextInput(attrs={'placeholder': 'Ex: Django, SEO, Photoshop'})
     )
 
-    # Optionnel: Validation supplémentaire si nécessaire
-    # def clean_note(self):
-    #     note = self.cleaned_data.get('note')
-    #     # Django valide déjà MinValue/MaxValue via le modèle, mais on pourrait ajouter autre chose
-    #     return note
+class MissionProgressForm(forms.ModelForm):
+    """Formulaire pour mettre à jour le pourcentage d'avancement"""
+    class Meta:
+        model = MissionProgress
+        fields = ['pourcentage_completion', 'description_avancement']
+        widgets = {
+            'pourcentage_completion': forms.NumberInput(attrs={
+                'min': '0',
+                'max': '100',
+                'step': '5',
+                'class': 'progress-slider'
+            }),
+            'description_avancement': forms.Textarea(attrs={
+                'rows': 3,
+                'placeholder': 'Décrivez les progrès réalisés...'
+            }),
+        }
+        labels = {
+            'pourcentage_completion': 'Avancement (%)',
+            'description_avancement': 'Description des progrès'
+        }
+
+class MissionStatusUpdateForm(forms.ModelForm):
+    """Formulaire pour changer le statut d'une mission"""
+    class Meta:
+        model = MissionStatusUpdate
+        fields = ['nouveau_statut', 'commentaire']
+        widgets = {
+            'nouveau_statut': forms.Select(attrs={'class': 'status-select'}),
+            'commentaire': forms.Textarea(attrs={
+                'rows': 3,
+                'placeholder': 'Expliquez le changement de statut...'
+            }),
+        }
+        labels = {
+            'nouveau_statut': 'Nouveau statut',
+            'commentaire': 'Commentaire (optionnel)'
+        }
+
+    def __init__(self, *args, current_status=None, user_role=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Filtrer les statuts disponibles selon le rôle et le statut actuel
+        if current_status and user_role:
+            available_statuses = self.get_available_statuses(current_status, user_role)
+            self.fields['nouveau_statut'].choices = [
+                (status, label) for status, label in MissionStatus.choices
+                if status in available_statuses
+            ]
+
+    def get_available_statuses(self, current_status, user_role):
+        """Détermine les statuts disponibles selon le contexte"""
+        transitions = {
+            'client': {
+                'OPEN': ['ASSIGNED', 'CANCELLED'],
+                'ASSIGNED': ['IN_PROGRESS', 'CANCELLED'],
+                'IN_PROGRESS': ['COMPLETED', 'CANCELLED'],
+                'COMPLETED': ['CLOSED'],
+            },
+            'freelance': {
+                'ASSIGNED': ['IN_PROGRESS'],
+                'IN_PROGRESS': ['COMPLETED'],
+            }
+        }
+        
+        return transitions.get(user_role, {}).get(current_status, [])
+
+class MissionMilestoneForm(forms.ModelForm):
+    """Formulaire pour créer/modifier un jalon"""
+    date_prevue = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        label="Date prévue"
+    )
+    
+    class Meta:
+        model = MissionMilestone
+        fields = ['titre', 'description', 'date_prevue', 'ordre']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'ordre': forms.NumberInput(attrs={'min': '1', 'step': '1'}),
+        }
+        labels = {
+            'titre': 'Titre du jalon',
+            'description': 'Description (optionnel)',
+            'ordre': 'Ordre d\'affichage'
+        }
+
+class MilestoneStatusForm(forms.Form):
+    """Formulaire simple pour marquer un jalon comme complété"""
+    est_complete = forms.BooleanField(
+        required=False,
+        label="Marquer comme complété"
+    )
+    commentaire = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 2}),
+        required=False,
+        label="Commentaire",
+        help_text="Note sur la completion de cette étape"
+    )
+
+class MissionCommentForm(forms.ModelForm):
+    """Formulaire pour ajouter un commentaire"""
+    class Meta:
+        model = MissionComment
+        fields = ['contenu', 'est_prive']
+        widgets = {
+            'contenu': forms.Textarea(attrs={
+                'rows': 4,
+                'placeholder': 'Ajouter un commentaire...'
+            }),
+            'est_prive': forms.CheckboxInput(attrs={
+                'class': 'private-checkbox'
+            }),
+        }
+        labels = {
+            'contenu': 'Commentaire',
+            'est_prive': 'Commentaire privé (visible uniquement par moi)'
+        }
+
+class MissionTrackingFilterForm(forms.Form):
+    """Formulaire de filtrage pour le tableau de bord"""
+    STATUT_CHOICES = [('', 'Tous les statuts')] + list(MissionStatus.choices)
+    
+    statut = forms.ChoiceField(
+        choices=STATUT_CHOICES,
+        required=False,
+        label="Filtrer par statut"
+    )
+    
+    date_debut = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        required=False,
+        label="Depuis le"
+    )
+    
+    date_fin = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        required=False,
+        label="Jusqu'au"
+    )
+    
+    retard_uniquement = forms.BooleanField(
+        required=False,
+        label="Missions en retard uniquement"
+    )
