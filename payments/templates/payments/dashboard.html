@@ -1,0 +1,600 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de Bord - Paiements{% endblock %}
+
+{% block content %}
+  <div class="payment-dashboard">
+    <div class="dashboard-header">
+      <h2>💰 Tableau de Bord - Paiements</h2>
+      <p>Gérez vos factures et paiements en toute simplicité</p>
+    </div>
+
+    <div class="dashboard-grid">
+      {# Section Client #}
+      {% if stats_client %}
+        <div class="stats-section client-stats">
+          <h3>👤 En tant que Client</h3>
+          <div class="stats-cards">
+            <div class="stat-card total">
+              <div class="stat-icon">📋</div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats_client.total_factures }}</div>
+                <div class="stat-label">Factures reçues</div>
+              </div>
+            </div>
+            
+            <div class="stat-card paid">
+              <div class="stat-icon">✅</div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats_client.factures_payees }}</div>
+                <div class="stat-label">Factures payées</div>
+              </div>
+            </div>
+            
+            <div class="stat-card pending">
+              <div class="stat-icon">⏳</div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats_client.factures_en_attente }}</div>
+                <div class="stat-label">En attente</div>
+              </div>
+            </div>
+            
+            <div class="stat-card overdue">
+              <div class="stat-icon">⚠️</div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats_client.factures_en_retard }}</div>
+                <div class="stat-label">En retard</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="amount-summary">
+            <div class="amount-item">
+              <span class="amount-label">Montant total facturé :</span>
+              <span class="amount-value">{{ stats_client.montant_total|floatformat:2 }} €</span>
+            </div>
+            <div class="amount-item">
+              <span class="amount-label">Montant payé :</span>
+              <span class="amount-value paid">{{ stats_client.montant_paye|floatformat:2 }} €</span>
+            </div>
+            <div class="amount-item">
+              <span class="amount-label">Reste à payer :</span>
+              <span class="amount-value pending">{{ stats_client.montant_total|add:stats_client.montant_paye|add:"-"|floatformat:2 }} €</span>
+            </div>
+          </div>
+          
+          <div class="action-buttons">
+            <a href="{% url 'payments:invoice_list' %}?role=client" class="button button-secondary">
+              📄 Voir mes factures reçues
+            </a>
+          </div>
+        </div>
+      {% endif %}
+
+      {# Section Freelance #}
+      {% if stats_freelance %}
+        <div class="stats-section freelance-stats">
+          <h3>🎯 En tant que Freelance</h3>
+          <div class="stats-cards">
+            <div class="stat-card total">
+              <div class="stat-icon">📤</div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats_freelance.total_factures }}</div>
+                <div class="stat-label">Factures émises</div>
+              </div>
+            </div>
+            
+            <div class="stat-card paid">
+              <div class="stat-icon">💰</div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats_freelance.factures_payees }}</div>
+                <div class="stat-label">Factures payées</div>
+              </div>
+            </div>
+            
+            <div class="stat-card pending">
+              <div class="stat-icon">⏳</div>
+              <div class="stat-content">
+                <div class="stat-number">{{ stats_freelance.factures_en_attente }}</div>
+                <div class="stat-label">En attente</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="amount-summary">
+            <div class="amount-item">
+              <span class="amount-label">Chiffre d'affaires total :</span>
+              <span class="amount-value">{{ stats_freelance.montant_total|floatformat:2 }} €</span>
+            </div>
+            <div class="amount-item">
+              <span class="amount-label">Montant reçu :</span>
+              <span class="amount-value paid">{{ stats_freelance.montant_recu|floatformat:2 }} €</span>
+            </div>
+          </div>
+          
+          <div class="action-buttons">
+            <a href="{% url 'payments:invoice_list' %}?role=freelance" class="button button-secondary">
+              📤 Voir mes factures émises
+            </a>
+          </div>
+        </div>
+      {% endif %}
+
+      {# Actions rapides #}
+      <div class="quick-actions-section">
+        <h3>⚡ Actions Rapides</h3>
+        <div class="action-grid">
+          {% if stats_client and stats_client.factures_en_attente > 0 %}
+            <div class="action-card urgent">
+              <div class="action-icon">🚨</div>
+              <div class="action-content">
+                <h4>Factures à payer</h4>
+                <p>{{ stats_client.factures_en_attente }} facture{{ stats_client.factures_en_attente|pluralize }} en attente de paiement</p>
+                <a href="{% url 'payments:invoice_list' %}?role=client&status=SENT" class="action-button">Payer maintenant</a>
+              </div>
+            </div>
+          {% endif %}
+          
+          {% if stats_client and stats_client.factures_en_retard > 0 %}
+            <div class="action-card critical">
+              <div class="action-icon">⚠️</div>
+              <div class="action-content">
+                <h4>Factures en retard</h4>
+                <p>{{ stats_client.factures_en_retard }} facture{{ stats_client.factures_en_retard|pluralize }} en retard</p>
+                <a href="{% url 'payments:invoice_list' %}?role=client&status=OVERDUE" class="action-button">Régler maintenant</a>
+              </div>
+            </div>
+          {% endif %}
+          
+          <div class="action-card">
+            <div class="action-icon">📊</div>
+            <div class="action-content">
+              <h4>Historique complet</h4>
+              <p>Consultez l'historique de tous vos paiements</p>
+              <a href="{% url 'payments:invoice_list' %}" class="action-button">Voir l'historique</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Factures récentes #}
+    {% if recent_factures %}
+      <div class="recent-section">
+        <h3>📋 Factures Récentes</h3>
+        <div class="recent-list">
+          {% for facture in recent_factures %}
+            <div class="recent-item">
+              <div class="facture-info">
+                <div class="facture-header">
+                  <span class="facture-ref">{{ facture.reference_facture }}</span>
+                  <span class="facture-status status-{{ facture.statut|lower }}">
+                    {{ facture.get_statut_display }}
+                  </span>
+                </div>
+                <div class="facture-details">
+                  {% if facture.client == user %}
+                    <span class="facture-party">De: {{ facture.freelance.username }}</span>
+                  {% else %}
+                    <span class="facture-party">Pour: {{ facture.client.username }}</span>
+                  {% endif %}
+                  <span class="facture-amount">{{ facture.montant_ttc }} €</span>
+                  <span class="facture-date">{{ facture.date_emission|date:"d/m/Y" }}</span>
+                </div>
+              </div>
+              <div class="facture-actions">
+                <a href="{% url 'payments:invoice_detail' facture.uuid %}" class="button button-small">Voir</a>
+                {% if facture.can_be_paid and facture.client == user %}
+                  <a href="{% url 'payments:payment_page' facture.uuid %}" class="button button-small">Payer</a>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="see-more">
+          <a href="{% url 'payments:invoice_list' %}">Voir toutes les factures →</a>
+        </div>
+      </div>
+    {% endif %}
+
+    {# Paiements récents #}
+    {% if recent_payments %}
+      <div class="recent-section">
+        <h3>💳 Paiements Récents</h3>
+        <div class="recent-list">
+          {% for paiement in recent_payments %}
+            <div class="recent-item payment-item">
+              <div class="payment-info">
+                <div class="payment-header">
+                  <span class="payment-ref">{{ paiement.reference_paiement }}</span>
+                  <span class="payment-status status-{{ paiement.statut|lower }}">
+                    {{ paiement.get_statut_display }}
+                  </span>
+                </div>
+                <div class="payment-details">
+                  <span class="payment-method">{{ paiement.get_methode_paiement_display }}</span>
+                  <span class="payment-amount">{{ paiement.montant }} €</span>
+                  <span class="payment-date">{{ paiement.date_paiement|date:"d/m/Y H:i" }}</span>
+                </div>
+              </div>
+              <div class="payment-actions">
+                <a href="{% url 'payments:invoice_detail' paiement.facture.uuid %}" class="button button-small">Voir facture</a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {# Message si aucune donnée #}
+    {% if not stats_client and not stats_freelance %}
+      <div class="empty-state">
+        <div class="empty-icon">💰</div>
+        <h3>Aucune activité de paiement</h3>
+        <p>Vous n'avez pas encore de factures ou de paiements.</p>
+        <p>Commencez par terminer une mission pour générer votre première facture !</p>
+        <a href="{% url 'missions:list' %}" class="button">Découvrir les missions</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <style>
+    .payment-dashboard {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .dashboard-header {
+        text-align: center;
+        margin-bottom: 2em;
+        padding: 2em;
+        background-color: var(--surface-color);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .dashboard-header h2 {
+        margin: 0 0 0.5em 0;
+        color: var(--accent-color);
+    }
+    
+    .dashboard-grid {
+        display: grid;
+        gap: 2em;
+        margin-bottom: 2em;
+    }
+    
+    .stats-section {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .stats-section h3 {
+        margin: 0 0 1.5em 0;
+        color: var(--accent-color);
+        font-size: 1.2rem;
+    }
+    
+    .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1em;
+        margin-bottom: 1.5em;
+    }
+    
+    .stat-card {
+        background-color: var(--bg-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 1em;
+        transition: transform 0.2s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .stat-card.total {
+        border-left: 4px solid var(--accent-color);
+    }
+    
+    .stat-card.paid {
+        border-left: 4px solid #4caf50;
+    }
+    
+    .stat-card.pending {
+        border-left: 4px solid #ff9800;
+    }
+    
+    .stat-card.overdue {
+        border-left: 4px solid #f44336;
+    }
+    
+    .stat-icon {
+        font-size: 2rem;
+        opacity: 0.8;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: var(--accent-color);
+        margin-bottom: 0.2em;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+    
+    .amount-summary {
+        background-color: var(--bg-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        margin-bottom: 1.5em;
+    }
+    
+    .amount-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.8em;
+        padding-bottom: 0.8em;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .amount-item:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+        font-weight: 600;
+    }
+    
+    .amount-label {
+        color: var(--text-secondary);
+    }
+    
+    .amount-value {
+        font-weight: 600;
+        color: var(--text-color);
+    }
+    
+    .amount-value.paid {
+        color: #4caf50;
+    }
+    
+    .amount-value.pending {
+        color: #ff9800;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1em;
+        flex-wrap: wrap;
+    }
+    
+    .quick-actions-section {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .quick-actions-section h3 {
+        margin: 0 0 1.5em 0;
+        color: var(--accent-color);
+    }
+    
+    .action-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1em;
+    }
+    
+    .action-card {
+        background-color: var(--bg-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        text-align: center;
+        transition: transform 0.2s ease;
+    }
+    
+    .action-card:hover {
+        transform: translateY(-3px);
+    }
+    
+    .action-card.urgent {
+        border-left: 4px solid #ff9800;
+    }
+    
+    .action-card.critical {
+        border-left: 4px solid #f44336;
+    }
+    
+    .action-icon {
+        font-size: 3rem;
+        margin-bottom: 1em;
+    }
+    
+    .action-card h4 {
+        margin: 0 0 0.5em 0;
+        color: var(--accent-color);
+    }
+    
+    .action-card p {
+        margin: 0 0 1em 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    .action-button {
+        display: inline-block;
+        padding: 0.6em 1.2em;
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: background-color 0.2s ease;
+    }
+    
+    .action-button:hover {
+        background-color: var(--accent-color-darker);
+        text-decoration: none;
+    }
+    
+    .recent-section {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 2em;
+    }
+    
+    .recent-section h3 {
+        margin: 0 0 1.5em 0;
+        color: var(--accent-color);
+    }
+    
+    .recent-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1em;
+    }
+    
+    .recent-item {
+        background-color: var(--bg-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1em;
+    }
+    
+    .facture-header, .payment-header {
+        display: flex;
+        align-items: center;
+        gap: 1em;
+        margin-bottom: 0.5em;
+    }
+    
+    .facture-ref, .payment-ref {
+        font-weight: 600;
+        color: var(--accent-color);
+    }
+    
+    .facture-status, .payment-status {
+        padding: 0.2em 0.6em;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .status-paid { background-color: #4caf50; color: white; }
+    .status-sent { background-color: #ff9800; color: white; }
+    .status-overdue { background-color: #f44336; color: white; }
+    .status-draft { background-color: #607d8b; color: white; }
+    .status-success { background-color: #4caf50; color: white; }
+    .status-pending { background-color: #ff9800; color: white; }
+    .status-processing { background-color: #2196f3; color: white; }
+    
+    .facture-details, .payment-details {
+        display: flex;
+        gap: 1em;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        flex-wrap: wrap;
+    }
+    
+    .facture-amount, .payment-amount {
+        font-weight: 600;
+        color: var(--accent-color);
+    }
+    
+    .facture-actions, .payment-actions {
+        display: flex;
+        gap: 0.5em;
+        flex-wrap: wrap;
+    }
+    
+    .button-small {
+        padding: 0.4em 0.8em;
+        font-size: 0.85rem;
+    }
+    
+    .see-more {
+        text-align: center;
+        margin-top: 1.5em;
+        padding-top: 1.5em;
+        border-top: 1px solid var(--border-color);
+    }
+    
+    .see-more a {
+        color: var(--accent-color);
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .see-more a:hover {
+        text-decoration: underline;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4em 2em;
+        background-color: var(--surface-color);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1em;
+        opacity: 0.6;
+    }
+    
+    .empty-state h3 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+    }
+    
+    .empty-state p {
+        color: var(--text-secondary);
+        margin: 0.5em 0;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .stats-cards {
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        }
+        
+        .recent-item {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .facture-actions, .payment-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+        
+        .action-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-buttons {
+            justify-content: center;
+        }
+    }
+  </style>
+
+{% endblock %}

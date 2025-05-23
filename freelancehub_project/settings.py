@@ -131,3 +131,64 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') # utile plus tard pour le d�
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Ajoutez ces configurations à la fin de votre settings.py
+
+# Configuration des paiements
+PAYMENT_SETTINGS = {
+    'DEFAULT_COMMISSION_RATE': 5.00,  # 5% de commission par défaut
+    'DEFAULT_VAT_RATE': 20.00,        # 20% de TVA par défaut
+    'CURRENCY': 'EUR',
+    'ESCROW_HOLD_DAYS': 7,            # Nombre de jours avant libération automatique
+}
+
+# Configuration Stripe
+STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', 'pk_test_...')
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_...')
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_...')
+
+# Configuration PayPal
+PAYPAL_CLIENT_ID = os.environ.get('PAYPAL_CLIENT_ID', 'your_paypal_client_id')
+PAYPAL_CLIENT_SECRET = os.environ.get('PAYPAL_CLIENT_SECRET', 'your_paypal_client_secret')
+PAYPAL_BASE_URL = os.environ.get('PAYPAL_BASE_URL', 'https://api.sandbox.paypal.com')  # sandbox par défaut
+
+# Configuration de logging pour les paiements
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'payments.log',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'payments': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
+
+# Configuration des fichiers uploadés (pour les justificatifs de paiement)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Configuration email pour les notifications de paiement
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'your-email@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'your-app-password')
+DEFAULT_FROM_EMAIL = 'FreelanceHub <noreply@freelancehub.com>'
+
+# URLs de redirection pour les paiements
+PAYMENT_SUCCESS_URL = '/payments/success/'
+PAYMENT_CANCEL_URL = '/payments/cancel/'

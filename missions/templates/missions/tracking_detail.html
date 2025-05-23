@@ -73,7 +73,55 @@
           </div>
         </section>
 
-        
+        {# Jalons #}
+        <section class="milestones-section">
+          <div class="section-header">
+            <h3>🎯 Jalons</h3>
+            <a href="{% url 'missions:add_milestone' mission.pk %}" class="button button-small">
+              + Ajouter un jalon
+            </a>
+          </div>
+          
+          {% if milestones %}
+            <div class="milestones-timeline">
+              {% for milestone in milestones %}
+                <div class="milestone-item {% if milestone.est_complete %}completed{% elif milestone.is_overdue %}overdue{% endif %}">
+                  <div class="milestone-status">
+                    <input type="checkbox" 
+                           class="milestone-checkbox" 
+                           data-milestone-id="{{ milestone.id }}"
+                           {% if milestone.est_complete %}checked{% endif %}>
+                  </div>
+                  
+                  <div class="milestone-content">
+                    <div class="milestone-header">
+                      <h4 class="milestone-title">{{ milestone.titre }}</h4>
+                      <div class="milestone-dates">
+                        <span class="milestone-due">📅 {{ milestone.date_prevue|date:"d/m/Y" }}</span>
+                        {% if milestone.date_completion %}
+                          <span class="milestone-completed">✅ {{ milestone.date_completion|date:"d/m/Y" }}</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                    
+                    {% if milestone.description %}
+                      <p class="milestone-description">{{ milestone.description }}</p>
+                    {% endif %}
+                    
+                    <small class="milestone-creator">
+                      Créé par {{ milestone.created_by.username }} le {{ milestone.date_creation|date:"d/m/Y" }}
+                    </small>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="no-milestones">
+              <p>Aucun jalon défini pour cette mission.</p>
+              <p>Les jalons permettent de découper la mission en étapes claires.</p>
+            </div>
+          {% endif %}
+        </section>
 
         {# Commentaires #}
         <section class="comments-section">
@@ -183,6 +231,12 @@
           {% if can_edit_progress %}
             <a href="{% url 'missions:update_progress' mission.pk %}" class="action-button">
               📈 Mettre à jour progression
+            </a>
+          {% endif %}
+          
+          {% if mission.statut == 'COMPLETED' and mission.freelance_assigne == user %}
+            <a href="{% url 'payments:create_invoice' mission.pk %}" class="action-button">
+              💰 Créer une facture
             </a>
           {% endif %}
           

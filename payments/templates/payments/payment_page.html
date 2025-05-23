@@ -1,0 +1,439 @@
+{% extends "base.html" %}
+
+{% block title %}Paiement - Facture {{ facture.reference_facture }}{% endblock %}
+
+{% block content %}
+  <div class="payment-container">
+    <div class="payment-header">
+      <h2>💳 Paiement de la facture</h2>
+      <div class="facture-summary">
+        <h3>{{ facture.reference_facture }}</h3>
+        <div class="amount-breakdown">
+          <div class="amount-line">
+            <span>Montant HT :</span>
+            <span>{{ facture.montant_ht }} €</span>
+          </div>
+          {% if facture.tva_taux > 0 %}
+            <div class="amount-line">
+              <span>TVA ({{ facture.tva_taux }}%) :</span>
+              <span>{{ facture.montant_ttc|floatformat:2|add:facture.montant_ht|add:"-" }} €</span>
+            </div>
+          {% endif %}
+          <div class="amount-line total">
+            <span>Total à payer :</span>
+            <span>{{ facture.montant_ttc }} €</span>
+          </div>
+        </div>
+        
+        {% if facture.mission %}
+          <div class="mission-info">
+            <p><strong>Mission :</strong> {{ facture.mission.titre }}</p>
+            <p><strong>Freelance :</strong> {{ facture.freelance.username }}</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="payment-form-container">
+      <form method="post" class="payment-form">
+        {% csrf_token %}
+        
+        <div class="payment-methods">
+          <h3>Choisissez votre méthode de paiement</h3>
+          
+          {% for choice in form.method %}
+            <div class="payment-method-option">
+              <label class="payment-method-label">
+                {{ choice.tag }}
+                <div class="payment-method-info">
+                  <div class="method-icon">
+                    {% if choice.choice_value == 'STRIPE' %}💳
+                    {% elif choice.choice_value == 'PAYPAL' %}🅿️
+                    {% elif choice.choice_value == 'ESCROW' %}🔒
+                    {% elif choice.choice_value == 'BANK_TRANSFER' %}🏦
+                    {% endif %}
+                  </div>
+                  <div class="method-details">
+                    <div class="method-name">{{ choice.choice_label }}</div>
+                    <div class="method-description">
+                      {% if choice.choice_value == 'STRIPE' %}
+                        Paiement instantané et sécurisé par carte bancaire
+                      {% elif choice.choice_value == 'PAYPAL' %}
+                        Payez avec votre compte PayPal en toute sécurité
+                      {% elif choice.choice_value == 'ESCROW' %}
+                        Fonds sécurisés jusqu'à validation du travail
+                      {% elif choice.choice_value == 'BANK_TRANSFER' %}
+                        Virement bancaire traditionnel (2-3 jours)
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% if choice.choice_value == 'ESCROW' %}
+                    <div class="method-badge recommended">Recommandé</div>
+                  {% elif choice.choice_value == 'STRIPE' %}
+                    <div class="method-badge instant">Instantané</div>
+                  {% endif %}
+                </div>
+              </label>
+            </div>
+          {% endfor %}
+          
+          {% if form.method.errors %}
+            <div class="error-message">
+              {% for error in form.method.errors %}
+                <p>{{ error }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="terms-section">
+          <label class="terms-label">
+            {{ form.accept_terms }}
+            <span class="terms-text">
+              {{ form.accept_terms.label }}
+              <a href="#" target="_blank">Lire les conditions</a>
+            </span>
+          </label>
+          {% if form.accept_terms.errors %}
+            <div class="error-message">
+              {% for error in form.accept_terms.errors %}
+                <p>{{ error }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="security-info">
+          <div class="security-badge">
+            <span class="security-icon">🔒</span>
+            <span class="security-text">Paiement 100% sécurisé - Vos données sont protégées</span>
+          </div>
+        </div>
+
+        <div class="payment-actions">
+          <button type="submit" class="button pay-button">
+            Procéder au paiement de {{ facture.montant_ttc }} €
+          </button>
+          <a href="{% url 'payments:invoice_detail' facture.uuid %}" class="button button-secondary">
+            Annuler
+          </a>
+        </div>
+      </form>
+    </div>
+
+    <div class="payment-help">
+      <h4>Besoin d'aide ?</h4>
+      <div class="help-items">
+        <div class="help-item">
+          <strong>💡 Paiement par séquestre :</strong>
+          Vos fonds sont conservés en sécurité jusqu'à ce que vous confirmiez que le travail est terminé.
+        </div>
+        <div class="help-item">
+          <strong>🔄 Remboursement :</strong>
+          Vous pouvez demander un remboursement en cas de problème avec la mission.
+        </div>
+        <div class="help-item">
+          <strong>📞 Support :</strong>
+          Notre équipe est disponible pour vous aider avec vos paiements.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .payment-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2em 1em;
+    }
+    
+    .payment-header {
+        text-align: center;
+        margin-bottom: 3em;
+    }
+    
+    .payment-header h2 {
+        margin: 0 0 1.5em 0;
+        color: var(--accent-color);
+    }
+    
+    .facture-summary {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    .facture-summary h3 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+        text-align: center;
+    }
+    
+    .amount-breakdown {
+        margin-bottom: 1.5em;
+    }
+    
+    .amount-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5em 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .amount-line.total {
+        font-weight: bold;
+        font-size: 1.1em;
+        color: var(--accent-color);
+        border-bottom: 2px solid var(--accent-color);
+        margin-top: 0.5em;
+        padding-top: 1em;
+    }
+    
+    .mission-info {
+        background-color: var(--bg-color);
+        padding: 1em;
+        border-radius: 6px;
+        font-size: 0.9rem;
+    }
+    
+    .mission-info p {
+        margin: 0.3em 0;
+    }
+    
+    .payment-form-container {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 2em;
+    }
+    
+    .payment-methods h3 {
+        margin: 0 0 1.5em 0;
+        color: var(--accent-color);
+        text-align: center;
+    }
+    
+    .payment-method-option {
+        margin-bottom: 1em;
+    }
+    
+    .payment-method-label {
+        display: block;
+        cursor: pointer;
+        background-color: var(--bg-color);
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0;
+        transition: all 0.2s ease;
+        overflow: hidden;
+    }
+    
+    .payment-method-label:hover {
+        border-color: var(--accent-color);
+    }
+    
+    .payment-method-label input[type="radio"] {
+        display: none;
+    }
+    
+    .payment-method-label input[type="radio"]:checked + .payment-method-info {
+        border-left: 4px solid var(--accent-color);
+        background-color: rgba(77, 208, 225, 0.1);
+    }
+    
+    .payment-method-info {
+        display: flex;
+        align-items: center;
+        padding: 1.5em;
+        gap: 1em;
+        transition: all 0.2s ease;
+    }
+    
+    .method-icon {
+        font-size: 2rem;
+        width: 3em;
+        text-align: center;
+    }
+    
+    .method-details {
+        flex-grow: 1;
+    }
+    
+    .method-name {
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 0.3em;
+    }
+    
+    .method-description {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    .method-badge {
+        padding: 0.3em 0.8em;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+    
+    .method-badge.recommended {
+        background-color: #4caf50;
+        color: white;
+    }
+    
+    .method-badge.instant {
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+    }
+    
+    .terms-section {
+        margin: 2em 0;
+        padding: 1.5em;
+        background-color: var(--bg-color);
+        border-radius: 8px;
+    }
+    
+    .terms-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.8em;
+        cursor: pointer;
+    }
+    
+    .terms-label input[type="checkbox"] {
+        margin-top: 0.2em;
+        transform: scale(1.2);
+    }
+    
+    .terms-text {
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+    
+    .terms-text a {
+        color: var(--accent-color);
+        text-decoration: none;
+    }
+    
+    .terms-text a:hover {
+        text-decoration: underline;
+    }
+    
+    .security-info {
+        text-align: center;
+        margin: 2em 0;
+    }
+    
+    .security-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5em;
+        padding: 0.8em 1.5em;
+        background-color: rgba(76, 175, 80, 0.1);
+        border: 1px solid #4caf50;
+        border-radius: 20px;
+        color: #4caf50;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .security-icon {
+        font-size: 1.1em;
+    }
+    
+    .payment-actions {
+        display: flex;
+        gap: 1em;
+        justify-content: center;
+        margin-top: 2em;
+    }
+    
+    .pay-button {
+        background: linear-gradient(135deg, var(--accent-color), var(--accent-color-darker));
+        font-size: 1.1em;
+        font-weight: 600;
+        padding: 1em 2em;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    
+    .pay-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(77, 208, 225, 0.3);
+    }
+    
+    .payment-help {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .payment-help h4 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+        text-align: center;
+    }
+    
+    .help-items {
+        display: grid;
+        gap: 1em;
+    }
+    
+    .help-item {
+        padding: 1em;
+        background-color: var(--bg-color);
+        border-radius: 6px;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+    
+    .error-message {
+        margin-top: 0.5em;
+        padding: 0.8em;
+        background-color: rgba(244, 67, 54, 0.1);
+        border: 1px solid #f44336;
+        border-radius: 4px;
+        color: #f44336;
+        font-size: 0.9rem;
+    }
+    
+    .error-message p {
+        margin: 0;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .payment-container {
+            padding: 1em;
+        }
+        
+        .payment-actions {
+            flex-direction: column;
+        }
+        
+        .method-info {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.5em;
+        }
+        
+        .method-badge {
+            align-self: center;
+        }
+        
+        .terms-label {
+            flex-direction: column;
+            gap: 0.5em;
+            text-align: center;
+        }
+    }
+  </style>
+
+{% endblock %}
