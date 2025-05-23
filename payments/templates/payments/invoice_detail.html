@@ -1,0 +1,480 @@
+
+{% extends "base.html" %}
+
+{% block title %}Facture {{ facture.reference_facture }} - FreelanceHub{% endblock %}
+
+{% block content %}
+  <div class="invoice-detail-container">
+    <div class="invoice-header">
+      <h2>Facture {{ facture.reference_facture }}</h2>
+      <div class="invoice-status-badge">
+        <span class="status-{{ facture.statut|lower }}">{{ facture.get_statut_display }}</span>
+      </div>
+    </div>
+
+    <div class="invoice-content">
+      <div class="invoice-main">
+        {# Informations principales #}
+        <section class="invoice-section">
+          <h3>📄 Détails de la facture</h3>
+          <div class="invoice-grid">
+            <div class="invoice-field">
+              <label>Référence :</label>
+              <span>{{ facture.reference_facture }}</span>
+            </div>
+            <div class="invoice-field">
+              <label>Date d'émission :</label>
+              <span>{{ facture.date_emission|date:"d/m/Y" }}</span>
+            </div>
+            <div class="invoice-field">
+              <label>Date d'échéance :</label>
+              <span>{{ facture.date_echeance|date:"d/m/Y" }}</span>
+            </div>
+            {% if facture.date_paiement %}
+              <div class="invoice-field">
+                <label>Date de paiement :</label>
+                <span>{{ facture.date_paiement|date:"d/m/Y H:i" }}</span>
+              </div>
+            {% endif %}
+          </div>
+        </section>
+
+        {# Parties impliquées #}
+        <section class="invoice-section">
+          <h3>👥 Parties</h3>
+          <div class="parties-grid">
+            <div class="party">
+              <h4>Client</h4>
+              <p><strong>{{ facture.client.get_full_name|default:facture.client.username }}</strong></p>
+              <p>{{ facture.client.email }}</p>
+              {% if facture.client.client_profile %}
+                {% if facture.client.client_profile.nom_entreprise %}
+                  <p>{{ facture.client.client_profile.nom_entreprise }}</p>
+                {% endif %}
+              {% endif %}
+            </div>
+            <div class="party">
+              <h4>Freelance</h4>
+              <p><strong>{{ facture.freelance.get_full_name|default:facture.freelance.username }}</strong></p>
+              <p>{{ facture.freelance.email }}</p>
+              {% if facture.freelance.freelance_profile %}
+                {% if facture.freelance.freelance_profile.titre_professionnel %}
+                  <p>{{ facture.freelance.freelance_profile.titre_professionnel }}</p>
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
+        </section>
+
+        {# Mission associée #}
+        {% if facture.mission %}
+          <section class="invoice-section">
+            <h3>🎯 Mission associée</h3>
+            <div class="mission-info">
+              <h4>
+                <a href="{% url 'missions:detail' facture.mission.pk %}">
+                  {{ facture.mission.titre }}
+                </a>
+              </h4>
+              <p>{{ facture.mission.description|truncatewords:30 }}</p>
+            </div>
+          </section>
+        {% endif %}
+
+        {# Calculs financiers #}
+        <section class="invoice-section">
+          <h3>💰 Détail financier</h3>
+          <div class="financial-breakdown">
+            <div class="amount-line">
+              <span>Montant HT :</span>
+              <span>{{ facture.montant_ht }} €</span>
+            </div>
+            {% if facture.tva_taux > 0 %}
+              <div class="amount-line">
+                <span>TVA ({{ facture.tva_taux }}%) :</span>
+                <span>{{ facture.montant_ttc|floatformat:2|add:facture.montant_ht|add:"-" }} €</span>
+              </div>
+            {% endif %}
+            <div class="amount-line total">
+              <span>Total TTC :</span>
+              <span>{{ facture.montant_ttc }} €</span>
+            </div>
+            <div class="amount-line commission">
+              <span>Commission FreelanceHub ({{ facture.commission_taux }}%) :</span>
+              <span>{{ facture.commission_montant }} €</span>
+            </div>
+            <div class="amount-line freelance">
+              <span>Montant pour le freelance :</span>
+              <span>{{ facture.montant_freelance }} €</span>
+            </div>
+          </div>
+        </section>
+
+        {# Notes #}
+        {% if facture.notes %}
+          <section class="invoice-section">
+            <h3>📝 Notes</h3>
+            <div class="notes-content">
+              {{ facture.notes|linebreaksbr }}
+            </div>
+          </section>
+        {% endif %}
+
+        {# Paiements #}
+        {% if paiements %}
+          <section class="invoice-section">
+            <h3>💳 Historique des paiements</h3>
+            <div class="payments-list">
+              {% for paiement in paiements %}
+                <div class="payment-item">
+                  <div class="payment-info">
+                    <strong>{{ paiement.reference_paiement }}</strong>
+                    <span class="payment-method">{{ paiement.get_methode_paiement_display }}</span>
+                  </div>
+                  <div class="payment-details">
+                    <span class="amount">{{ paiement.montant }} €</span>
+                    <span class="status status-{{ paiement.statut|lower }}">{{ paiement.get_statut_display }}</span>
+                    <span class="date">{{ paiement.date_paiement|date:"d/m/Y H:i" }}</span>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+      </div>
+
+      {# Actions #}
+      <div class="invoice-actions">
+        <div class="actions-card">
+          <h4>⚡ Actions</h4>
+          
+          {% if can_pay %}
+            <a href="{% url 'payments:payment_page' facture.pk %}" class="action-button primary">
+              💳 Payer cette facture
+            </a>
+          {% endif %}
+          
+          {% if escrow_account and can_release_escrow %}
+            <a href="{% url 'payments:release_escrow' facture.pk %}" class="action-button">
+              🔓 Libérer les fonds
+            </a>
+          {% endif %}
+          
+          {% if facture.mission %}
+            <a href="{% url 'missions:detail' facture.mission.pk %}" class="action-button">
+              🎯 Voir la mission
+            </a>
+          {% endif %}
+          
+          <a href="{% url 'payments:invoice_list' %}" class="action-button secondary">
+            📋 Toutes mes factures
+          </a>
+          
+          <a href="{% url 'payments:dashboard' %}" class="action-button secondary">
+            🏠 Tableau de bord
+          </a>
+        </div>
+
+        {# Informations sur le séquestre #}
+        {% if escrow_account %}
+          <div class="escrow-card">
+            <h4>🔒 Séquestre</h4>
+            <div class="escrow-info">
+              <p><strong>Montant bloqué :</strong> {{ escrow_account.montant_bloque }} €</p>
+              <p><strong>Créé le :</strong> {{ escrow_account.date_creation|date:"d/m/Y H:i" }}</p>
+              {% if escrow_account.est_libere %}
+                <p><strong>Libéré le :</strong> {{ escrow_account.date_liberation|date:"d/m/Y H:i" }}</p>
+                <span class="escrow-status released">✅ Fonds libérés</span>
+              {% else %}
+                <span class="escrow-status pending">⏳ En attente de libération</span>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .invoice-detail-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .invoice-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2em;
+        padding: 1.5em;
+        background-color: var(--surface-color);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .invoice-header h2 {
+        margin: 0;
+        color: var(--accent-color);
+    }
+    
+    .invoice-status-badge .status-paid { background-color: #4caf50; color: white; padding: 0.5em 1em; border-radius: 20px; }
+    .invoice-status-badge .status-sent { background-color: #ff9800; color: white; padding: 0.5em 1em; border-radius: 20px; }
+    .invoice-status-badge .status-overdue { background-color: #f44336; color: white; padding: 0.5em 1em; border-radius: 20px; }
+    .invoice-status-badge .status-draft { background-color: #607d8b; color: white; padding: 0.5em 1em; border-radius: 20px; }
+    
+    .invoice-content {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2em;
+    }
+    
+    .invoice-section {
+        background-color: var(--surface-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 1.5em;
+    }
+    
+    .invoice-section h3 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+        font-size: 1.1rem;
+    }
+    
+    .invoice-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1em;
+    }
+    
+    .invoice-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3em;
+    }
+    
+    .invoice-field label {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .invoice-field span {
+        color: var(--text-color);
+        font-weight: 600;
+    }
+    
+    .parties-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2em;
+    }
+    
+    .party h4 {
+        margin: 0 0 0.5em 0;
+        color: var(--accent-color);
+    }
+    
+    .party p {
+        margin: 0.3em 0;
+        font-size: 0.9rem;
+    }
+    
+    .mission-info h4 {
+        margin: 0 0 0.5em 0;
+    }
+    
+    .mission-info h4 a {
+        color: var(--accent-color);
+        text-decoration: none;
+    }
+    
+    .mission-info h4 a:hover {
+        text-decoration: underline;
+    }
+    
+    .financial-breakdown {
+        background-color: var(--bg-color);
+        padding: 1.5em;
+        border-radius: 6px;
+    }
+    
+    .amount-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5em 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .amount-line.total {
+        font-weight: bold;
+        font-size: 1.1em;
+        color: var(--accent-color);
+        border-bottom: 2px solid var(--accent-color);
+        margin-top: 0.5em;
+        padding-top: 1em;
+    }
+    
+    .amount-line.commission {
+        color: var(--text-secondary);
+        font-size: 0.9em;
+    }
+    
+    .amount-line.freelance {
+        font-weight: 600;
+        color: #4caf50;
+    }
+    
+    .notes-content {
+        background-color: var(--bg-color);
+        padding: 1em;
+        border-radius: 6px;
+        border-left: 3px solid var(--accent-color);
+    }
+    
+    .payments-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1em;
+    }
+    
+    .payment-item {
+        background-color: var(--bg-color);
+        padding: 1em;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .payment-info {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5em;
+    }
+    
+    .payment-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+    }
+    
+    .payment-details .amount {
+        font-weight: 600;
+        color: var(--accent-color);
+    }
+    
+    .payment-details .status {
+        padding: 0.2em 0.6em;
+        border-radius: 10px;
+        font-size: 0.8rem;
+    }
+    
+    .actions-card, .escrow-card {
+        background-color: var(--surface-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 1.5em;
+        height: fit-content;
+    }
+    
+    .actions-card h4, .escrow-card h4 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+    }
+    
+    .action-button {
+        display: block;
+        width: 100%;
+        padding: 0.8em 1em;
+        margin-bottom: 0.8em;
+        text-align: center;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }
+    
+    .action-button.primary {
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+        font-weight: 600;
+    }
+    
+    .action-button.primary:hover {
+        background-color: var(--accent-color-darker);
+        text-decoration: none;
+    }
+    
+    .action-button.secondary {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+    }
+    
+    .action-button.secondary:hover {
+        background-color: var(--border-color);
+        text-decoration: none;
+    }
+    
+    .action-button:not(.primary):not(.secondary) {
+        background-color: var(--surface-color);
+        color: var(--accent-color);
+        border: 1px solid var(--accent-color);
+    }
+    
+    .action-button:not(.primary):not(.secondary):hover {
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+        text-decoration: none;
+    }
+    
+    .escrow-info p {
+        margin: 0.5em 0;
+        font-size: 0.9rem;
+    }
+    
+    .escrow-status {
+        padding: 0.4em 0.8em;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .escrow-status.released {
+        background-color: #4caf50;
+        color: white;
+    }
+    
+    .escrow-status.pending {
+        background-color: #ff9800;
+        color: white;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .invoice-content {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .invoice-header {
+            flex-direction: column;
+            gap: 1em;
+            text-align: center;
+        }
+        
+        .parties-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .payment-info, .payment-details {
+            flex-direction: column;
+            gap: 0.5em;
+        }
+    }
+  </style>
+
+{% endblock %}

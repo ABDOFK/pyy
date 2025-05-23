@@ -1,0 +1,1848 @@
+<!-- payments/templates/payments/create_invoice.html -->
+{% extends "base.html" %}
+
+{% block title %}Créer une facture - {{ mission.titre }}{% endblock %}
+
+{% block content %}
+  <div class="create-invoice-container">
+    <div class="form-header">
+      <h2>💼 Créer une facture</h2>
+      <div class="mission-info">
+        <h3>Mission : {{ mission.titre }}</h3>
+        <p><strong>Client :</strong> {{ mission.client.username }}</p>
+        <p><strong>Freelance :</strong> {{ mission.freelance_assigne.username }}</p>
+      </div>
+    </div>
+
+    <form method="post" class="invoice-form">
+      {% csrf_token %}
+      
+      <div class="form-section">
+        <h4>💰 Montants</h4>
+        <div class="form-row">
+          <div class="form-field">
+            {{ form.montant_ht.label_tag }}
+            {{ form.montant_ht }}
+            {% if form.montant_ht.errors %}
+              <div class="error-message">{{ form.montant_ht.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="form-field">
+            {{ form.tva_taux.label_tag }}
+            {{ form.tva_taux }}
+            {% if form.tva_taux.errors %}
+              <div class="error-message">{{ form.tva_taux.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="calculation-preview">
+          <div class="calc-line">
+            <span>Montant HT :</span>
+            <span id="ht-amount">0.00 €</span>
+          </div>
+          <div class="calc-line">
+            <span>TVA (<span id="tva-rate">20</span>%) :</span>
+            <span id="tva-amount">0.00 €</span>
+          </div>
+          <div class="calc-line total">
+            <span>Total TTC :</span>
+            <span id="ttc-amount">0.00 €</span>
+          </div>
+          <div class="calc-line commission">
+            <span>Commission FreelanceHub (5%) :</span>
+            <span id="commission-amount">0.00 €</span>
+          </div>
+          <div class="calc-line freelance">
+            <span>Montant pour le freelance :</span>
+            <span id="freelance-amount">0.00 €</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h4>📅 Échéance</h4>
+        <div class="form-field">
+          {{ form.date_echeance.label_tag }}
+          {{ form.date_echeance }}
+          {% if form.date_echeance.errors %}
+            <div class="error-message">{{ form.date_echeance.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h4>📝 Description</h4>
+        <div class="form-field">
+          {{ form.description.label_tag }}
+          {{ form.description }}
+          {% if form.description.errors %}
+            <div class="error-message">{{ form.description.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="button primary">💾 Créer la facture</button>
+        <a href="{% url 'missions:detail' mission.pk %}" class="button secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+
+  <style>
+    .create-invoice-container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    .form-header {
+        text-align: center;
+        margin-bottom: 2em;
+        padding: 2em;
+        background-color: var(--surface-color);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .form-header h2 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+    }
+    
+    .mission-info h3 {
+        margin: 0 0 0.5em 0;
+        color: var(--text-color);
+    }
+    
+    .mission-info p {
+        margin: 0.3em 0;
+        color: var(--text-secondary);
+    }
+    
+    .invoice-form {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .form-section {
+        margin-bottom: 2em;
+        padding-bottom: 1.5em;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .form-section:last-of-type {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+    
+    .form-section h4 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+        font-size: 1.1rem;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5em;
+    }
+    
+    .form-field {
+        margin-bottom: 1em;
+    }
+    
+    .form-field label {
+        display: block;
+        margin-bottom: 0.5em;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+    
+    .form-field input,
+    .form-field textarea {
+        width: 100%;
+        padding: 0.8em;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-size: 1rem;
+    }
+    
+    .form-field input:focus,
+    .form-field textarea:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(77, 208, 225, 0.3);
+    }
+    
+    .calculation-preview {
+        background-color: var(--bg-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-top: 1em;
+    }
+    
+    .calc-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5em 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .calc-line.total {
+        font-weight: bold;
+        font-size: 1.1em;
+        color: var(--accent-color);
+        border-bottom: 2px solid var(--accent-color);
+        margin-top: 0.5em;
+        padding-top: 1em;
+    }
+    
+    .calc-line.commission {
+        color: var(--text-secondary);
+        font-size: 0.9em;
+    }
+    
+    .calc-line.freelance {
+        font-weight: 600;
+        color: #4caf50;
+        border-bottom: none;
+    }
+    
+    .error-message {
+        color: #f44336;
+        font-size: 0.9rem;
+        margin-top: 0.5em;
+        padding: 0.5em;
+        background-color: rgba(244, 67, 54, 0.1);
+        border: 1px solid #f44336;
+        border-radius: 4px;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1em;
+        justify-content: center;
+        margin-top: 2em;
+    }
+    
+    .button.primary {
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+        font-weight: 600;
+    }
+    
+    .button.secondary {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+    }
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const montantHtInput = document.getElementById('id_montant_ht');
+        const tvaTauxInput = document.getElementById('id_tva_taux');
+        
+        function updateCalculations() {
+            const montantHt = parseFloat(montantHtInput.value) || 0;
+            const tvaTaux = parseFloat(tvaTauxInput.value) || 0;
+            
+            const montantTva = montantHt * (tvaTaux / 100);
+            const montantTtc = montantHt + montantTva;
+            const commission = montantTtc * 0.05; // 5% de commission
+            const montantFreelance = montantTtc - commission;
+            
+            document.getElementById('ht-amount').textContent = montantHt.toFixed(2) + ' €';
+            document.getElementById('tva-rate').textContent = tvaTaux.toFixed(0);
+            document.getElementById('tva-amount').textContent = montantTva.toFixed(2) + ' €';
+            document.getElementById('ttc-amount').textContent = montantTtc.toFixed(2) + ' €';
+            document.getElementById('commission-amount').textContent = commission.toFixed(2) + ' €';
+            document.getElementById('freelance-amount').textContent = montantFreelance.toFixed(2) + ' €';
+        }
+        
+        montantHtInput.addEventListener('input', updateCalculations);
+        tvaTauxInput.addEventListener('input', updateCalculations);
+        
+        // Calcul initial
+        updateCalculations();
+    });
+  </script>
+
+{% endblock %}
+
+<!-- ====================================== -->
+<!-- payments/templates/payments/escrow_payment.html -->
+<!-- ====================================== -->
+
+{% extends "base.html" %}
+
+{% block title %}Paiement Séquestre - Facture {{ facture.reference_facture }}{% endblock %}
+
+{% block content %}
+  <div class="escrow-payment-container">
+    <div class="payment-header">
+      <h2>🔒 Paiement par Séquestre</h2>
+      <p class="subtitle">Sécurisez votre paiement avec notre système de séquestre</p>
+    </div>
+
+    <div class="escrow-explanation">
+      <h3>💡 Comment fonctionne le séquestre ?</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h4>Blocage des fonds</h4>
+            <p>Vos fonds sont sécurisés sur notre plateforme</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h4>Travail du freelance</h4>
+            <p>Le freelance réalise la mission en toute confiance</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h4>Validation et libération</h4>
+            <p>Vous validez le travail et libérez les fonds</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="facture-summary">
+      <h3>📄 Résumé de la facture</h3>
+      <div class="summary-content">
+        <div class="summary-line">
+          <span>Facture :</span>
+          <span>{{ facture.reference_facture }}</span>
+        </div>
+        <div class="summary-line">
+          <span>Freelance :</span>
+          <span>{{ facture.freelance.username }}</span>
+        </div>
+        {% if facture.mission %}
+          <div class="summary-line">
+            <span>Mission :</span>
+            <span>{{ facture.mission.titre }}</span>
+          </div>
+        {% endif %}
+        <div class="summary-line total">
+          <span>Montant à bloquer :</span>
+          <span>{{ facture.montant_ttc }} €</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="escrow-benefits">
+      <h4>✅ Avantages du séquestre</h4>
+      <ul>
+        <li>🛡️ Protection totale de votre paiement</li>
+        <li>⏱️ Libération uniquement après validation du travail</li>
+        <li>🤝 Confiance mutuelle entre client et freelance</li>
+        <li>📞 Support FreelanceHub en cas de litige</li>
+      </ul>
+    </div>
+
+    <form method="post" class="escrow-form">
+      {% csrf_token %}
+      <div class="confirmation-section">
+        <label class="confirmation-checkbox">
+          <input type="checkbox" required>
+          <span class="checkmark"></span>
+          <span class="checkbox-text">
+            Je comprends que les fonds seront bloqués jusqu'à ma validation du travail accompli
+          </span>
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="button primary">
+          🔒 Placer {{ facture.montant_ttc }} € en séquestre
+        </button>
+        <a href="{% url 'payments:payment_page' facture.pk %}" class="button secondary">
+          ← Choisir une autre méthode
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <style>
+    .escrow-payment-container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    .payment-header {
+        text-align: center;
+        margin-bottom: 2em;
+        padding: 2em;
+        background: linear-gradient(135deg, var(--surface-color), var(--bg-color));
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .payment-header h2 {
+        margin: 0 0 0.5em 0;
+        color: var(--accent-color);
+    }
+    
+    .subtitle {
+        color: var(--text-secondary);
+        margin: 0;
+        font-size: 1.1rem;
+    }
+    
+    .escrow-explanation {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 2em;
+    }
+    
+    .escrow-explanation h3 {
+        margin: 0 0 1.5em 0;
+        color: var(--accent-color);
+        text-align: center;
+    }
+    
+    .steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5em;
+    }
+    
+    .step {
+        text-align: center;
+        padding: 1em;
+    }
+    
+    .step-number {
+        width: 3em;
+        height: 3em;
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2em;
+        margin: 0 auto 1em auto;
+    }
+    
+    .step-content h4 {
+        margin: 0 0 0.5em 0;
+        color: var(--text-color);
+    }
+    
+    .step-content p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    .facture-summary {
+        background-color: var(--surface-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 2em;
+    }
+    
+    .facture-summary h3 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+    }
+    
+    .summary-content {
+        background-color: var(--bg-color);
+        padding: 1.5em;
+        border-radius: 6px;
+    }
+    
+    .summary-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5em 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .summary-line.total {
+        font-weight: bold;
+        font-size: 1.1em;
+        color: var(--accent-color);
+        border-bottom: 2px solid var(--accent-color);
+        margin-top: 0.5em;
+        padding-top: 1em;
+    }
+    
+    .escrow-benefits {
+        background-color: rgba(76, 175, 80, 0.1);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid #4caf50;
+        margin-bottom: 2em;
+    }
+    
+    .escrow-benefits h4 {
+        margin: 0 0 1em 0;
+        color: #4caf50;
+    }
+    
+    .escrow-benefits ul {
+        margin: 0;
+        padding-left: 1.5em;
+    }
+    
+    .escrow-benefits li {
+        margin-bottom: 0.5em;
+        color: var(--text-color);
+    }
+    
+    .escrow-form {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .confirmation-section {
+        margin-bottom: 2em;
+    }
+    
+    .confirmation-checkbox {
+        display: flex;
+        align-items: flex-start;
+        gap: 1em;
+        cursor: pointer;
+        padding: 1em;
+        background-color: var(--bg-color);
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        transition: border-color 0.2s ease;
+    }
+    
+    .confirmation-checkbox:hover {
+        border-color: var(--accent-color);
+    }
+    
+    .confirmation-checkbox input[type="checkbox"] {
+        display: none;
+    }
+    
+    .checkmark {
+        width: 1.5em;
+        height: 1.5em;
+        background-color: var(--surface-color);
+        border: 2px solid var(--border-color);
+        border-radius: 4px;
+        position: relative;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+    
+    .confirmation-checkbox input[type="checkbox"]:checked + .checkmark {
+        background-color: var(--accent-color);
+        border-color: var(--accent-color);
+    }
+    
+    .confirmation-checkbox input[type="checkbox"]:checked + .checkmark::after {
+        content: '✓';
+        position: absolute;
+        color: var(--bg-color);
+        font-size: 1em;
+        font-weight: bold;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    
+    .checkbox-text {
+        flex-grow: 1;
+        line-height: 1.4;
+        color: var(--text-color);
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1em;
+        justify-content: center;
+    }
+    
+    .button.primary {
+        background: linear-gradient(135deg, var(--accent-color), var(--accent-color-darker));
+        color: var(--bg-color);
+        font-weight: 600;
+        font-size: 1.1em;
+        padding: 1em 2em;
+    }
+    
+    .button.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(77, 208, 225, 0.3);
+    }
+    
+    .button.secondary {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .steps {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .summary-line {
+            flex-direction: column;
+            gap: 0.3em;
+        }
+    }
+  </style>
+
+{% endblock %}
+
+<!-- ====================================== -->
+<!-- payments/templates/payments/release_escrow.html -->
+<!-- ====================================== -->
+
+{% extends "base.html" %}
+
+{% block title %}Libérer les fonds - Facture {{ facture.reference_facture }}{% endblock %}
+
+{% block content %}
+  <div class="release-escrow-container">
+    <div class="release-header">
+      <h2>🔓 Libération des fonds</h2>
+      <p>Vous êtes sur le point de libérer les fonds vers le freelance</p>
+    </div>
+
+    <div class="escrow-info">
+      <h3>📋 Informations sur le séquestre</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <label>Facture :</label>
+          <span>{{ facture.reference_facture }}</span>
+        </div>
+        <div class="info-item">
+          <label>Freelance :</label>
+          <span>{{ facture.freelance.username }}</span>
+        </div>
+        <div class="info-item">
+          <label>Mission :</label>
+          <span>
+            {% if facture.mission %}
+              <a href="{% url 'missions:detail' facture.mission.pk %}">{{ facture.mission.titre }}</a>
+            {% else %}
+              Non spécifiée
+            {% endif %}
+          </span>
+        </div>
+        <div class="info-item">
+          <label>Montant bloqué :</label>
+          <span class="amount">{{ escrow_account.montant_bloque }} €</span>
+        </div>
+        <div class="info-item">
+          <label>Bloqué depuis :</label>
+          <span>{{ escrow_account.date_creation|date:"d/m/Y à H:i" }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="release-warning">
+      <h4>⚠️ Important</h4>
+      <p>Une fois les fonds libérés, cette action est <strong>irréversible</strong>. Assurez-vous que :</p>
+      <ul>
+        <li>✅ Le travail a été livré selon vos attentes</li>
+        <li>✅ Tous les livrables ont été reçus</li>
+        <li>✅ La mission est bien terminée</li>
+      </ul>
+    </div>
+
+    <form method="post" class="release-form">
+      {% csrf_token %}
+      
+      <div class="form-section">
+        <div class="form-field">
+          <label class="confirmation-label">
+            {{ form.confirmation }}
+            <span class="confirmation-text">
+              {{ form.confirmation.label }}
+            </span>
+          </label>
+          {% if form.confirmation.errors %}
+            <div class="error-message">{{ form.confirmation.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if form.rating %}
+        <div class="form-section">
+          <h4>⭐ Évaluer le freelance (optionnel)</h4>
+          <div class="rating-field">
+            {{ form.rating.label_tag }}
+            <div class="rating-options">
+              {% for choice in form.rating %}
+                <label class="rating-option">
+                  {{ choice.tag }}
+                  <span class="rating-label">{{ choice.choice_label }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if form.feedback %}
+        <div class="form-section">
+          <div class="form-field">
+            {{ form.feedback.label_tag }}
+            {{ form.feedback }}
+            {% if form.feedback.errors %}
+              <div class="error-message">{{ form.feedback.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="form-actions">
+        <button type="submit" class="button primary">
+          🔓 Libérer {{ escrow_account.montant_bloque }} € vers {{ facture.freelance.username }}
+        </button>
+        <a href="{% url 'payments:invoice_detail' facture.pk %}" class="button secondary">
+          Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <style>
+    .release-escrow-container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    .release-header {
+        text-align: center;
+        margin-bottom: 2em;
+        padding: 2em;
+        background-color: var(--surface-color);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .release-header h2 {
+        margin: 0 0 0.5em 0;
+        color: var(--accent-color);
+    }
+    
+    .release-header p {
+        margin: 0;
+        color: var(--text-secondary);
+    }
+    
+    .escrow-info {
+        background-color: var(--surface-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 2em;
+    }
+    
+    .escrow-info h3 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+    }
+    
+    .info-grid {
+        display: grid;
+        gap: 1em;
+    }
+    
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.8em;
+        background-color: var(--bg-color);
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .info-item label {
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+    
+    .info-item span {
+        color: var(--text-color);
+        font-weight: 600;
+    }
+    
+    .info-item .amount {
+        color: var(--accent-color);
+        font-size: 1.1em;
+    }
+    
+    .info-item a {
+        color: var(--accent-color);
+        text-decoration: none;
+    }
+    
+    .info-item a:hover {
+        text-decoration: underline;
+    }
+    
+    .release-warning {
+        background-color: rgba(255, 152, 0, 0.1);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid #ff9800;
+        margin-bottom: 2em;
+    }
+    
+    .release-warning h4 {
+        margin: 0 0 1em 0;
+        color: #ff9800;
+    }
+    
+    .release-warning p {
+        margin: 0 0 1em 0;
+        color: var(--text-color);
+    }
+    
+    .release-warning ul {
+        margin: 0;
+        padding-left: 1.5em;
+    }
+    
+    .release-warning li {
+        margin-bottom: 0.5em;
+        color: var(--text-color);
+    }
+    
+    .release-form {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .form-section {
+        margin-bottom: 2em;
+        padding-bottom: 1.5em;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .form-section:last-of-type {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+    
+    .form-section h4 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+    }
+    
+    .confirmation-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 1em;
+        cursor: pointer;
+        padding: 1em;
+        background-color: var(--bg-color);
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        transition: border-color 0.2s ease;
+    }
+    
+    .confirmation-label:hover {
+        border-color: var(--accent-color);
+    }
+    
+    .confirmation-text {
+        flex-grow: 1;
+        line-height: 1.4;
+        color: var(--text-color);
+        font-weight: 500;
+    }
+    
+    .form-field {
+        margin-bottom: 1em;
+    }
+    
+    .form-field label {
+        display: block;
+        margin-bottom: 0.5em;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+    
+    .form-field textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 0.8em;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: inherit;
+        resize: vertical;
+    }
+    
+    .form-field textarea:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(77, 208, 225, 0.3);
+    }
+    
+    .rating-options {
+        display: flex;
+        gap: 1em;
+        flex-wrap: wrap;
+        margin-top: 0.5em;
+    }
+    
+    .rating-option {
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+        cursor: pointer;
+        padding: 0.5em 1em;
+        background-color: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        transition: all 0.2s ease;
+    }
+    
+    .rating-option:hover {
+        border-color: var(--accent-color);
+        background-color: rgba(77, 208, 225, 0.1);
+    }
+    
+    .rating-option input[type="radio"]:checked + .rating-label {
+        font-weight: 600;
+        color: var(--accent-color);
+    }
+    
+    .error-message {
+        color: #f44336;
+        font-size: 0.9rem;
+        margin-top: 0.5em;
+        padding: 0.5em;
+        background-color: rgba(244, 67, 54, 0.1);
+        border: 1px solid #f44336;
+        border-radius: 4px;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1em;
+        justify-content: center;
+        margin-top: 2em;
+    }
+    
+    .button.primary {
+        background: linear-gradient(135deg, #4caf50, #45a049);
+        color: white;
+        font-weight: 600;
+        font-size: 1.1em;
+        padding: 1em 2em;
+        border: none;
+    }
+    
+    .button.primary:hover {
+        background: linear-gradient(135deg, #45a049, #3d8b40);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(76, 175, 80, 0.3);
+    }
+    
+    .button.secondary {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .info-item {
+            flex-direction: column;
+            gap: 0.5em;
+        }
+        
+        .rating-options {
+            flex-direction: column;
+        }
+    }
+  </style>
+
+{% endblock %}
+
+<!-- ====================================== -->
+<!-- payments/templates/payments/bank_transfer.html -->
+<!-- ====================================== -->
+
+{% extends "base.html" %}
+
+{% block title %}Paiement par Virement - Facture {{ facture.reference_facture }}{% endblock %}
+
+{% block content %}
+  <div class="bank-transfer-container">
+    <div class="transfer-header">
+      <h2>🏦 Paiement par Virement Bancaire</h2>
+      <p>Déclarez votre virement bancaire pour la facture {{ facture.reference_facture }}</p>
+    </div>
+
+    <div class="facture-summary">
+      <h3>📄 Détails de la facture</h3>
+      <div class="summary-grid">
+        <div class="summary-item">
+          <label>Référence :</label>
+          <span>{{ facture.reference_facture }}</span>
+        </div>
+        <div class="summary-item">
+          <label>Freelance :</label>
+          <span>{{ facture.freelance.username }}</span>
+        </div>
+        <div class="summary-item total">
+          <label>Montant à virer :</label>
+          <span>{{ facture.montant_ttc }} €</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bank-instructions">
+      <h3>📋 Instructions de virement</h3>
+      <div class="instructions-content">
+        <div class="instruction-item">
+          <strong>IBAN :</strong> FR76 1234 5678 9012 3456 7890 123
+        </div>
+        <div class="instruction-item">
+          <strong>BIC :</strong> FREELAHUB123
+        </div>
+        <div class="instruction-item">
+          <strong>Bénéficiaire :</strong> FreelanceHub SARL
+        </div>
+        <div class="instruction-item">
+          <strong>Référence obligatoire :</strong> {{ facture.reference_facture }}
+        </div>
+      </div>
+      
+      <div class="important-note">
+        <h4>⚠️ Important</h4>
+        <p>N'oubliez pas d'indiquer la référence <strong>{{ facture.reference_facture }}</strong> dans la communication de votre virement.</p>
+      </div>
+    </div>
+
+    <form method="post" class="transfer-form">
+      {% csrf_token %}
+      
+      <h3>📝 Déclaration de virement</h3>
+      
+      <div class="form-section">
+        <div class="form-field">
+          {{ form.bank_name.label_tag }}
+          {{ form.bank_name }}
+          {% if form.bank_name.errors %}
+            <div class="error-message">{{ form.bank_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+        
+        <div class="form-field">
+          {{ form.transfer_date.label_tag }}
+          {{ form.transfer_date }}
+          {% if form.transfer_date.errors %}
+            <div class="error-message">{{ form.transfer_date.errors.0 }}</div>
+          {% endif %}
+        </div>
+        
+        <div class="form-field">
+          {{ form.transfer_reference.label_tag }}
+          {{ form.transfer_reference }}
+          {% if form.transfer_reference.errors %}
+            <div class="error-message">{{ form.transfer_reference.errors.0 }}</div>
+          {% endif %}
+        </div>
+        
+        <div class="form-field">
+          {{ form.proof_of_payment.label_tag }}
+          {{ form.proof_of_payment }}
+          {% if form.proof_of_payment.help_text %}
+            <small class="help-text">{{ form.proof_of_payment.help_text }}</small>
+          {% endif %}
+          {% if form.proof_of_payment.errors %}
+            <div class="error-message">{{ form.proof_of_payment.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="processing-info">
+        <h4>⏱️ Délais de traitement</h4>
+        <ul>
+          <li>Virement national : 1-2 jours ouvrés</li>
+          <li>Virement SEPA : 1-3 jours ouvrés</li>
+          <li>Validation FreelanceHub : 1 jour ouvré après réception</li>
+        </ul>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="button primary">
+          📤 Déclarer le virement
+        </button>
+        <a href="{% url 'payments:payment_page' facture.pk %}" class="button secondary">
+          ← Choisir une autre méthode
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <style>
+    .bank-transfer-container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    .transfer-header {
+        text-align: center;
+        margin-bottom: 2em;
+        padding: 2em;
+        background-color: var(--surface-color);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .transfer-header h2 {
+        margin: 0 0 0.5em 0;
+        color: var(--accent-color);
+    }
+    
+    .transfer-header p {
+        margin: 0;
+        color: var(--text-secondary);
+    }
+    
+    .facture-summary {
+        background-color: var(--surface-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 2em;
+    }
+    
+    .facture-summary h3 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+    }
+    
+    .summary-grid {
+        display: grid;
+        gap: 0.8em;
+    }
+    
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.8em;
+        background-color: var(--bg-color);
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .summary-item.total {
+        font-weight: bold;
+        font-size: 1.1em;
+        background-color: rgba(77, 208, 225, 0.1);
+        border-color: var(--accent-color);
+    }
+    
+    .summary-item label {
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+    
+    .summary-item span {
+        color: var(--text-color);
+        font-weight: 600;
+    }
+    
+    .summary-item.total span {
+        color: var(--accent-color);
+    }
+    
+    .bank-instructions {
+        background-color: var(--surface-color);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 2em;
+    }
+    
+    .bank-instructions h3 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+    }
+    
+    .instructions-content {
+        background-color: var(--bg-color);
+        padding: 1.5em;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 1.5em;
+    }
+    
+    .instruction-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5em 0;
+        border-bottom: 1px solid var(--border-color);
+        font-family: monospace;
+    }
+    
+    .instruction-item:last-child {
+        border-bottom: none;
+    }
+    
+    .instruction-item strong {
+        color: var(--text-secondary);
+        min-width: 140px;
+    }
+    
+    .important-note {
+        background-color: rgba(255, 152, 0, 0.1);
+        padding: 1em;
+        border-radius: 6px;
+        border: 1px solid #ff9800;
+    }
+    
+    .important-note h4 {
+        margin: 0 0 0.5em 0;
+        color: #ff9800;
+    }
+    
+    .important-note p {
+        margin: 0;
+        color: var(--text-color);
+    }
+    
+    .transfer-form {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .transfer-form h3 {
+        margin: 0 0 1.5em 0;
+        color: var(--accent-color);
+    }
+    
+    .form-section {
+        margin-bottom: 2em;
+    }
+    
+    .form-field {
+        margin-bottom: 1.5em;
+    }
+    
+    .form-field label {
+        display: block;
+        margin-bottom: 0.5em;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+    
+    .form-field input {
+        width: 100%;
+        padding: 0.8em;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-size: 1rem;
+    }
+    
+    .form-field input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(77, 208, 225, 0.3);
+    }
+    
+    .help-text {
+        display: block;
+        margin-top: 0.5em;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        font-style: italic;
+    }
+    
+    .error-message {
+        color: #f44336;
+        font-size: 0.9rem;
+        margin-top: 0.5em;
+        padding: 0.5em;
+        background-color: rgba(244, 67, 54, 0.1);
+        border: 1px solid #f44336;
+        border-radius: 4px;
+    }
+    
+    .processing-info {
+        background-color: rgba(33, 150, 243, 0.1);
+        padding: 1.5em;
+        border-radius: 8px;
+        border: 1px solid #2196f3;
+        margin-bottom: 2em;
+    }
+    
+    .processing-info h4 {
+        margin: 0 0 1em 0;
+        color: #2196f3;
+    }
+    
+    .processing-info ul {
+        margin: 0;
+        padding-left: 1.5em;
+    }
+    
+    .processing-info li {
+        margin-bottom: 0.5em;
+        color: var(--text-color);
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1em;
+        justify-content: center;
+    }
+    
+    .button.primary {
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+        font-weight: 600;
+        font-size: 1.1em;
+        padding: 1em 2em;
+    }
+    
+    .button.secondary {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .summary-item {
+            flex-direction: column;
+            gap: 0.5em;
+        }
+        
+        .instruction-item {
+            flex-direction: column;
+            gap: 0.3em;
+        }
+        
+        .instruction-item strong {
+            min-width: auto;
+        }
+    }
+  </style>
+
+{% endblock %}
+
+<!-- ====================================== -->
+<!-- payments/templates/payments/payment_success.html -->
+<!-- ====================================== -->
+
+{% extends "base.html" %}
+
+{% block title %}Paiement Réussi - FreelanceHub{% endblock %}
+
+{% block content %}
+  <div class="success-container">
+    <div class="success-header">
+      <div class="success-icon">✅</div>
+      <h2>Paiement Réussi !</h2>
+      <p>Votre paiement a été traité avec succès</p>
+    </div>
+
+    <div class="payment-details">
+      <h3>📋 Détails du paiement</h3>
+      <div class="details-grid">
+        <div class="detail-item">
+          <label>Facture :</label>
+          <span>{{ facture.reference_facture }}</span>
+        </div>
+        <div class="detail-item">
+          <label>Montant :</label>
+          <span class="amount">{{ facture.montant_ttc }} €</span>
+        </div>
+        <div class="detail-item">
+          <label>Freelance :</label>
+          <span>{{ facture.freelance.username }}</span>
+        </div>
+        {% if facture.mission %}
+          <div class="detail-item">
+            <label>Mission :</label>
+            <span>
+              <a href="{% url 'missions:detail' facture.mission.pk %}">
+                {{ facture.mission.titre }}
+              </a>
+            </span>
+          </div>
+        {% endif %}
+        <div class="detail-item">
+          <label>Date de paiement :</label>
+          <span>{{ facture.date_paiement|date:"d/m/Y à H:i" }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="next-steps">
+      <h3>🎯 Prochaines étapes</h3>
+      <div class="steps-list">
+        <div class="step-item">
+          <div class="step-icon">📧</div>
+          <div class="step-content">
+            <h4>Confirmation par email</h4>
+            <p>Vous recevrez un email de confirmation sous peu</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-icon">🎯</div>
+          <div class="step-content">
+            <h4>Suivi de la mission</h4>
+            <p>Vous pouvez suivre l'avancement de votre mission</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-icon">⭐</div>
+          <div class="step-content">
+            <h4>Évaluation</h4>
+            <p>N'oubliez pas d'évaluer le freelance à la fin</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="success-actions">
+      <a href="{% url 'payments:invoice_detail' facture.pk %}" class="button">
+        📄 Voir la facture
+      </a>
+      {% if facture.mission %}
+        <a href="{% url 'missions:detail' facture.mission.pk %}" class="button button-secondary">
+          🎯 Voir la mission
+        </a>
+      {% endif %}
+      <a href="{% url 'payments:dashboard' %}" class="button button-secondary">
+        🏠 Tableau de bord
+      </a>
+    </div>
+  </div>
+
+  <style>
+    .success-container {
+        max-width: 600px;
+        margin: 0 auto;
+        text-align: center;
+    }
+    
+    .success-header {
+        padding: 3em 2em;
+        background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.05));
+        border-radius: 12px;
+        border: 1px solid #4caf50;
+        margin-bottom: 2em;
+    }
+    
+    .success-icon {
+        font-size: 4rem;
+        margin-bottom: 1em;
+    }
+    
+    .success-header h2 {
+        margin: 0 0 0.5em 0;
+        color: #4caf50;
+        font-size: 2rem;
+    }
+    
+    .success-header p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+    
+    .payment-details {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 2em;
+        text-align: left;
+    }
+    
+    .payment-details h3 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+        text-align: center;
+    }
+    
+    .details-grid {
+        display: grid;
+        gap: 1em;
+    }
+    
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.8em;
+        background-color: var(--bg-color);
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .detail-item label {
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+    
+    .detail-item span {
+        color: var(--text-color);
+        font-weight: 600;
+    }
+    
+    .detail-item .amount {
+        color: var(--accent-color);
+        font-size: 1.1em;
+    }
+    
+    .detail-item a {
+        color: var(--accent-color);
+        text-decoration: none;
+    }
+    
+    .detail-item a:hover {
+        text-decoration: underline;
+    }
+    
+    .next-steps {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 2em;
+        text-align: left;
+    }
+    
+    .next-steps h3 {
+        margin: 0 0 1.5em 0;
+        color: var(--accent-color);
+        text-align: center;
+    }
+    
+    .steps-list {
+        display: grid;
+        gap: 1.5em;
+    }
+    
+    .step-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1em;
+        padding: 1em;
+        background-color: var(--bg-color);
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .step-icon {
+        font-size: 2rem;
+        flex-shrink: 0;
+    }
+    
+    .step-content h4 {
+        margin: 0 0 0.5em 0;
+        color: var(--text-color);
+    }
+    
+    .step-content p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    .success-actions {
+        display: flex;
+        gap: 1em;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .success-actions .button {
+        padding: 0.8em 1.5em;
+        font-size: 0.9rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .success-actions {
+            flex-direction: column;
+        }
+        
+        .detail-item {
+            flex-direction: column;
+            gap: 0.5em;
+        }
+        
+        .step-item {
+            text-align: center;
+            flex-direction: column;
+        }
+    }
+  </style>
+
+{% endblock %}
+
+<!-- ====================================== -->
+<!-- payments/templates/payments/payment_cancel.html -->
+<!-- ====================================== -->
+
+{% extends "base.html" %}
+
+{% block title %}Paiement Annulé - FreelanceHub{% endblock %}
+
+{% block content %}
+  <div class="cancel-container">
+    <div class="cancel-header">
+      <div class="cancel-icon">❌</div>
+      <h2>Paiement Annulé</h2>
+      <p>Votre paiement a été annulé ou a échoué</p>
+    </div>
+
+    <div class="cancel-details">
+      <h3>📄 Facture concernée</h3>
+      <div class="facture-info">
+        <div class="info-item">
+          <label>Référence :</label>
+          <span>{{ facture.reference_facture }}</span>
+        </div>
+        <div class="info-item">
+          <label>Montant :</label>
+          <span class="amount">{{ facture.montant_ttc }} €</span>
+        </div>
+        <div class="info-item">
+          <label>Freelance :</label>
+          <span>{{ facture.freelance.username }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <h3>💡 Que faire maintenant ?</h3>
+      <div class="help-options">
+        <div class="help-option">
+          <h4>🔄 Réessayer le paiement</h4>
+          <p>Vous pouvez retenter le paiement avec la même méthode ou en choisir une autre</p>
+        </div>
+        <div class="help-option">
+          <h4>💬 Contacter le freelance</h4>
+          <p>Discutez des modalités de paiement directement avec le freelance</p>
+        </div>
+        <div class="help-option">
+          <h4>📞 Support FreelanceHub</h4>
+          <p>Notre équipe peut vous aider en cas de problème technique</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cancel-actions">
+      <a href="{% url 'payments:payment_page' facture.pk %}" class="button primary">
+        🔄 Réessayer le paiement
+      </a>
+      <a href="{% url 'payments:invoice_detail' facture.pk %}" class="button button-secondary">
+        📄 Voir la facture
+      </a>
+      {% if facture.mission and facture.mission.freelance_assigne %}
+        <a href="{% url 'messaging:start_conversation' facture.mission.freelance_assigne.pk %}" class="button button-secondary">
+          💬 Contacter {{ facture.freelance.username }}
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <style>
+    .cancel-container {
+        max-width: 600px;
+        margin: 0 auto;
+        text-align: center;
+    }
+    
+    .cancel-header {
+        padding: 3em 2em;
+        background: linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(244, 67, 54, 0.05));
+        border-radius: 12px;
+        border: 1px solid #f44336;
+        margin-bottom: 2em;
+    }
+    
+    .cancel-icon {
+        font-size: 4rem;
+        margin-bottom: 1em;
+    }
+    
+    .cancel-header h2 {
+        margin: 0 0 0.5em 0;
+        color: #f44336;
+        font-size: 2rem;
+    }
+    
+    .cancel-header p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+    
+    .cancel-details {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 2em;
+        text-align: left;
+    }
+    
+    .cancel-details h3 {
+        margin: 0 0 1em 0;
+        color: var(--accent-color);
+        text-align: center;
+    }
+    
+    .facture-info {
+        display: grid;
+        gap: 1em;
+    }
+    
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.8em;
+        background-color: var(--bg-color);
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .info-item label {
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+    
+    .info-item span {
+        color: var(--text-color);
+        font-weight: 600;
+    }
+    
+    .info-item .amount {
+        color: var(--accent-color);
+        font-size: 1.1em;
+    }
+    
+    .help-section {
+        background-color: var(--surface-color);
+        padding: 2em;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 2em;
+        text-align: left;
+    }
+    
+    .help-section h3 {
+        margin: 0 0 1.5em 0;
+        color: var(--accent-color);
+        text-align: center;
+    }
+    
+    .help-options {
+        display: grid;
+        gap: 1.5em;
+    }
+    
+    .help-option {
+        padding: 1.5em;
+        background-color: var(--bg-color);
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .help-option h4 {
+        margin: 0 0 0.5em 0;
+        color: var(--text-color);
+    }
+    
+    .help-option p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    .cancel-actions {
+        display: flex;
+        gap: 1em;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .cancel-actions .button {
+        padding: 0.8em 1.5em;
+        font-size: 0.9rem;
+    }
+    
+    .button.primary {
+        background-color: var(--accent-color);
+        color: var(--bg-color);
+        font-weight: 600;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .cancel-actions {
+            flex-direction: column;
+        }
+        
+        .info-item {
+            flex-direction: column;
+            gap: 0.5em;
+        }
+    }
+  </style>
+
+{% endblock %}
