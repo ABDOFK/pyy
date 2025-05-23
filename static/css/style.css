@@ -2,13 +2,19 @@
 
 /* --- Variables (Personnalisez ici !) --- */
 :root {
-    --bg-color: #1a1f25; /* Fond sombre légèrement bleuté */
-    --surface-color: #2a313a; /* Surface un peu plus claire (cartes, formulaires) */
-    --text-color: #e0e0e0; /* Texte principal clair */
-    --text-secondary: #a0a0a0; /* Texte secondaire plus gris */
-    --accent-color: #4dd0e1; /* Turquoise vif (Cyan A200) */
-    --accent-color-darker: #00bcd4; /* Version plus foncée pour hover/active */
-    --border-color: #404853; /* Couleur de bordure subtile */
+    /* Fiverr-inspired Light Mode Palette */
+    --bg-color: #f7f9fa; /* Very light gray background */
+    --surface-color: #ffffff; /* White for cards, forms, etc. */
+    --text-color: #333740; /* Dark gray for main text (good contrast) */
+    --text-secondary: #62646a; /* Lighter gray for secondary text */
+    
+    /* Fiverr Green as Accent */
+    --accent-color: #1dbf73; /* Fiverr Green */
+    --accent-color-darker: #19a366; /* Darker shade for hover/active */
+    
+    --border-color: #e4e5e7; /* Light, subtle border color */
+    
+    /* Alert Colors (standard light mode versions) */
     --error-bg: #f8d7da;
     --error-text: #721c24;
     --error-border: #f5c6cb;
@@ -22,10 +28,12 @@
     --font-primary: 'Lato', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     --font-headings: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+    /* Softer shadows for light mode */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 3px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 20px rgba(0,0,0,0.12); /* Added a larger shadow for more depth if needed */
   
-    --transition-speed: 0.3s;
+    --transition-speed: 0.25s; /* Slightly faster for a snappier feel */
     --transition-ease: ease-in-out;
   }
   
@@ -46,7 +54,7 @@
     background-color: var(--bg-color);
     color: var(--text-color);
     line-height: 1.6;
-    font-size: 16px; /* Base font size */
+    font-size: 16px;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
@@ -57,16 +65,17 @@
     font-weight: 700;
     margin-top: 1.5em;
     margin-bottom: 0.75em;
-    color: var(--accent-color); /* Titres en couleur accentuée */
+    /* Headings in primary text color for better readability, accent for links/highlights */
+    color: var(--text-color); 
   }
   
-  h1 { font-size: 2.5rem; }
-  h2 { font-size: 2rem; }
-  h3 { font-size: 1.75rem; }
-  h4 { font-size: 1.5rem; }
+  h1 { font-size: 2.5rem; line-height: 1.2; }
+  h2 { font-size: 2rem; line-height: 1.2; }
+  h3 { font-size: 1.75rem; line-height: 1.3; }
+  h4 { font-size: 1.5rem; line-height: 1.3; }
   
   p {
-    margin-bottom: 1em;
+    margin-bottom: 1.2em;
   }
   
   a {
@@ -77,46 +86,50 @@
   
   a:hover, a:focus {
     color: var(--accent-color-darker);
-    text-decoration: underline; /* Soulignement au survol pour clarté */
+    text-decoration: underline;
   }
   
   hr {
     border: none;
     border-top: 1px solid var(--border-color);
-    margin: 2em 0;
+    margin: 2.5em 0;
   }
   
   img {
     max-width: 100%;
     height: auto;
+    display: block; /* Prevents bottom margin space */
   }
   
   /* --- Layout --- */
   header, main, footer {
     width: 100%;
-    max-width: 1100px; /* Limite la largeur max du contenu */
+    max-width: 1140px; /* Common container width */
     margin-left: auto;
     margin-right: auto;
-    padding: 1em 1.5em; /* Espacement intérieur */
+    padding: 1.5em 2em; 
   }
   
   main {
-    flex-grow: 1; /* Fait que le contenu principal prend l'espace restant */
-    padding-top: 2em;
-    padding-bottom: 3em;
+    flex-grow: 1;
+    padding-top: 2.5em;
+    padding-bottom: 3.5em;
   }
   
   /* --- Header & Navigation --- */
   header {
+    background-color: var(--surface-color); /* White header */
     padding-top: 1.5em;
-    padding-bottom: 1em;
+    padding-bottom: 1.5em;
     border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm); /* Subtle shadow for depth */
   }
   
   header h1 a {
-    color: var(--text-color);
+    color: var(--text-color); /* Main site title in primary text color */
     text-decoration: none;
     font-weight: 700;
+    font-size: 1.8rem; /* Slightly larger for branding */
   }
   header h1 a:hover {
     color: var(--accent-color);
@@ -124,23 +137,28 @@
   
   header nav {
     margin-top: 1em;
-    font-size: 0.95rem;
+    font-size: 1rem;
   }
   
   header nav a, header nav span {
-    margin-right: 1.5em;
+    margin-right: 1.8em;
     color: var(--text-secondary);
+    font-weight: 500; /* Slightly bolder nav links */
   }
-  header nav a:hover {
+  header nav a:hover, header nav form button:hover {
      color: var(--accent-color);
      text-decoration: none;
   }
-  header nav form button { /* Style pour le bouton déconnexion */
+  header nav form button {
     color: var(--text-secondary);
-    font-size: inherit; /* Hérite de la taille de la nav */
+    font-size: inherit;
+    font-weight: 500;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
   }
   header nav form button:hover {
-    color: var(--accent-color);
     text-decoration: underline;
   }
   
@@ -149,16 +167,16 @@
     margin-top: 1.5em;
   }
   
-  form p { /* Style les <p> générés par form.as_p */
-    margin-bottom: 1.2em;
+  form p {
+    margin-bottom: 1.5em;
   }
   
   label {
     display: block;
-    margin-bottom: 0.5em;
-    font-weight: 700;
+    margin-bottom: 0.6em;
+    font-weight: 600; /* Bolder labels */
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    color: var(--text-color); /* Darker labels for better readability */
   }
   
   input[type="text"],
@@ -171,13 +189,13 @@
   select {
     display: block;
     width: 100%;
-    padding: 0.8em 1em;
+    padding: 0.75em 1em; /* Standard padding */
     font-family: var(--font-primary);
     font-size: 1rem;
     color: var(--text-color);
-    background-color: var(--surface-color);
+    background-color: var(--surface-color); /* White input background */
     border: 1px solid var(--border-color);
-    border-radius: 5px;
+    border-radius: 4px; /* Slightly less rounded */
     transition: border-color var(--transition-speed) var(--transition-ease),
                 box-shadow var(--transition-speed) var(--transition-ease);
   }
@@ -192,62 +210,65 @@
   select:focus {
     outline: none;
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px rgba(77, 208, 225, 0.3); /* Halo sur focus */
+    /* Fiverr-like focus: slightly thicker border and a subtle glow */
+    box-shadow: 0 0 0 2px rgba(29, 191, 115, 0.2); 
   }
   
   textarea {
-    min-height: 100px;
-    resize: vertical; /* Permet redimensionnement vertical */
+    min-height: 120px;
+    resize: vertical;
   }
   
-  /* Style des erreurs de formulaire (si Django les ajoute) */
   .errorlist {
       color: var(--error-text);
-      background-color: rgba(248, 215, 218, 0.1);
+      background-color: var(--error-bg); /* Use the variable directly */
       border: 1px solid var(--error-border);
-      padding: 0.5em 1em;
-      margin-top: -0.5em;
-      margin-bottom: 1em;
+      padding: 0.75em 1.25em;
+      margin-top: -0.5em; /* Adjust to align with field */
+      margin-bottom: 1.2em;
       font-size: 0.9rem;
-      list-style: none;
+      list-style-position: inside; /* Bullets inside */
       border-radius: 4px;
   }
-  .errorlist li { margin-bottom: 0.3em; }
+  .errorlist li { margin-bottom: 0.4em; }
+  .errorlist li:last-child { margin-bottom: 0; }
   
   /* --- Boutons --- */
   button,
   input[type="submit"],
-  a.button { /* Si vous utilisez des liens stylés comme boutons */
+  a.button {
     display: inline-block;
-    padding: 0.8em 1.8em;
+    padding: 0.75em 1.75em; /* Adjusted padding */
     font-family: var(--font-headings);
     font-size: 1rem;
-    font-weight: 500;
+    font-weight: 600; /* Bolder buttons */
     text-align: center;
     text-decoration: none;
-    color: var(--bg-color); /* Texte foncé sur fond clair */
+    color: #ffffff; /* White text on accent background */
     background-color: var(--accent-color);
-    border: none;
-    border-radius: 5px;
+    border: 1px solid var(--accent-color); /* Border for consistency */
+    border-radius: 4px;
     cursor: pointer;
     transition: background-color var(--transition-speed) var(--transition-ease),
+                border-color var(--transition-speed) var(--transition-ease),
                 transform var(--transition-speed) var(--transition-ease),
                 box-shadow var(--transition-speed) var(--transition-ease);
-    box-shadow: var(--shadow-sm);
+    /* No default shadow on button, add on hover */
   }
   
   button:hover,
   input[type="submit"]:hover,
   a.button:hover {
     background-color: var(--accent-color-darker);
-    transform: translateY(-2px); /* Légère animation au survol */
-    box-shadow: var(--shadow-md);
+    border-color: var(--accent-color-darker);
+    transform: translateY(-1px); 
+    box-shadow: var(--shadow-sm); /* Add subtle shadow on hover */
   }
   
   button:active,
   input[type="submit"]:active,
   a.button:active {
-    transform: scale(0.98); /* Effet d'enfoncement au clic */
+    transform: scale(0.98) translateY(0px);
     box-shadow: none;
   }
   
@@ -255,36 +276,36 @@
   input[type="submit"]:focus,
   a.button:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(77, 208, 225, 0.4);
+    box-shadow: 0 0 0 3px rgba(29, 191, 115, 0.3); /* Focus ring matching accent */
   }
   
-  /* Bouton "secondaire" (optionnel) */
   .button-secondary {
     background-color: var(--surface-color);
     color: var(--accent-color);
     border: 1px solid var(--accent-color);
-    box-shadow: none;
   }
   .button-secondary:hover {
-    background-color: rgba(77, 208, 225, 0.1); /* Fond léger accentué */
+    background-color: rgba(29, 191, 115, 0.05); /* Very light green tint */
     border-color: var(--accent-color-darker);
     color: var(--accent-color-darker);
+    box-shadow: var(--shadow-sm);
   }
   
   /* --- Messages Flash --- */
   .messages {
     list-style: none;
     padding: 0;
-    margin: 0 0 1.5em 0; /* Espace sous les messages */
+    margin: 0 0 1.8em 0;
   }
   
   .messages li {
     padding: 1em 1.5em;
     margin-bottom: 1em;
-    border-radius: 5px;
+    border-radius: 4px;
     border: 1px solid transparent;
-    opacity: 0; /* Départ pour animation */
-    transform: translateY(-10px); /* Départ pour animation */
+    font-size: 0.95rem; /* Slightly larger for readability */
+    opacity: 0; 
+    transform: translateY(-10px); 
     animation: fadeInUp 0.5s var(--transition-ease) forwards;
   }
   
@@ -298,43 +319,48 @@
     color: var(--info-text);
     border-color: var(--info-border);
   }
-  /* .messages li.warning ... */
   .messages li.error {
     background-color: var(--error-bg);
     color: var(--error-text);
     border-color: var(--error-border);
   }
   
-  
-  /* --- Cartes (Exemple pour futures listes de missions/profils) --- */
+  /* --- Cartes --- */
   .card {
-    background-color: var(--surface-color);
-    padding: 1.5em;
-    border-radius: 8px;
-    margin-bottom: 1.5em;
+    background-color: var(--surface-color); /* White cards */
+    padding: 1.8em; /* More padding */
+    border-radius: 6px; /* Slightly more rounded */
+    margin-bottom: 1.8em;
+    border: 1px solid var(--border-color); /* Add border to cards */
     box-shadow: var(--shadow-sm);
     transition: transform var(--transition-speed) var(--transition-ease),
                 box-shadow var(--transition-speed) var(--transition-ease);
     opacity: 0;
     animation: fadeIn 0.6s var(--transition-ease) forwards;
-    animation-delay: 0.2s; /* Léger délai */
+    animation-delay: 0.2s; 
   }
   
   .card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-3px); /* Less aggressive lift */
+    box-shadow: var(--shadow-md); /* Slightly more prominent shadow on hover */
   }
   
   .card h3 {
     margin-top: 0;
-    color: var(--accent-color);
+    color: var(--text-color); /* Card titles in primary text color */
+  }
+  .card h3 a {
+    color: var(--accent-color); /* Links within card titles are accent */
+  }
+  .card h3 a:hover {
+    color: var(--accent-color-darker);
   }
   
   /* --- Animations --- */
   @keyframes fadeInUp {
       from {
         opacity: 0;
-        transform: translateY(10px); /* Commence légèrement plus bas */
+        transform: translateY(10px);
       }
       to {
         opacity: 1;
@@ -347,53 +373,64 @@
     to { opacity: 1; }
   }
   
-  /* Appliquer une animation d'entrée générale au contenu principal */
   main {
-    /* --- AJOUTEZ OU MODIFIEZ CETTE RÈGLE --- */
-    /* Applique l'animation fadeInUp:
-       - Nom: fadeInUp
-       - Durée: 0.6s
-       - Fonction de timing: var(--transition-ease) (ease-in-out)
-       - Délai avant démarrage: 0.1s
-       - Fill Mode: forwards (garde l'état final de l'animation) */
-    animation: fadeInUp 0.6s var(--transition-ease) 0.1s forwards;
-  
-    /* Optionnel: Peut aider les navigateurs à optimiser l'animation,
-       mais à utiliser avec parcimonie. */
-    /* will-change: transform, opacity; */
+    animation: fadeInUp 0.5s var(--transition-ease) 0.1s forwards;
+    /* will-change: transform, opacity; Removed, use sparingly */
   }
   
-  /* Optionnel: Si vous vouliez animer CHAQUE enfant direct de main séparément (peut être chargé) */
-  
-  main > * {
-     animation: fadeInUp 0.6s var(--transition-ease) 0.1s forwards;
-  }
- 
-
-  
+  /* Removed: main > * { animation: ... } to avoid over-animating.
+     If you need individual elements animated, apply animation classes directly. */
   
   /* --- Footer --- */
   footer {
-    margin-top: auto; /* Pousse le footer en bas */
-    padding-top: 1.5em;
-    padding-bottom: 1.5em;
+    margin-top: auto; 
+    padding-top: 2em;
+    padding-bottom: 2em;
     text-align: center;
     font-size: 0.9rem;
     color: var(--text-secondary);
     border-top: 1px solid var(--border-color);
+    background-color: var(--surface-color); /* Match header background */
   }
   
-  /* --- Responsive (Exemple simple) --- */
+  /* --- Responsive --- */
   @media (max-width: 768px) {
-    h1 { font-size: 2rem; }
-    h2 { font-size: 1.75rem; }
+    h1 { font-size: 2.1rem; }
+    h2 { font-size: 1.8rem; }
     h3 { font-size: 1.5rem; }
   
     header, main, footer {
-      padding: 1em;
+      padding-left: 1em;
+      padding-right: 1em;
     }
   
-    header nav a, header nav span {
-      margin-right: 1em;
+    header nav {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start; /* Or center, depending on design */
+    }
+    header nav a, header nav span, header nav form {
+      margin-right: 0;
+      margin-bottom: 0.8em; /* Space out nav items vertically */
+    }
+    header nav a:last-child, header nav span:last-child, header nav form:last-child {
+      margin-bottom: 0;
+    }
+
+    button, input[type="submit"], a.button {
+        padding: 0.7em 1.5em; /* Slightly smaller padding on mobile */
+        font-size: 0.95rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    body {
+        font-size: 15px; /* Slightly smaller base font on very small screens */
+    }
+    h1 { font-size: 1.8rem; }
+    h2 { font-size: 1.6rem; }
+    
+    .card {
+        padding: 1.2em;
     }
   }
