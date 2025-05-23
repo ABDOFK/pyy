@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Candidatures pour "{{ mission.titre }}" - FreelanceHub{% endblock %}
+
+{% block content %}
+  <h2>Candidatures reçues pour : "{{ mission.titre }}"</h2>
+  <p><strong>Statut de la mission:</strong> <span class="status-{{ mission.statut|lower }}">{{ mission.get_statut_display }}</span></p> {# Réutiliser style #}
+  {% if mission.freelance_assigne %}
+  <p><strong>Assignée à :</strong> {{ mission.freelance_assigne.username }}</p>
+  {% endif %}
+  <hr>
+
+  {% if candidatures %}
+    {% for candidature in candidatures %}
+      <article class="card">
+        <h4>Candidat : {{ candidature.freelance.username }}</h4> {# Lien vers profil ? #}
+        <p><strong>Reçue le :</strong> {{ candidature.date_candidature|date:"d/m/Y H:i" }}</p>
+        <p><strong>Statut actuel :</strong> <span class="status-{{ candidature.statut|lower }}">{{ candidature.get_statut_display }}</span></p> {# Réutiliser style #}
+        {% if candidature.proposition_tarifaire %}
+        <p><strong>Proposition tarifaire :</strong> {{ candidature.proposition_tarifaire }} €</p>
+        {% endif %}
+        {% if candidature.lettre_motivation %}
+        <p><strong>Message :</strong></p>
+        <blockquote style="border-left: 3px solid var(--border-color); padding-left: 1em; margin-left: 0.5em; font-style: italic;">
+          {{ candidature.lettre_motivation|linebreaksbr }}
+        </blockquote>
+        {% endif %}
+
+        {# Boutons d'action pour le client, si la candidature est en attente ET la mission non assignée #}
+        {% if candidature.statut == 'SUBMITTED' and mission.statut == 'OPEN' %}
+        <div style="margin-top: 1em;">
+          <form action="{% url 'missions:accept_candidature' candidature.pk %}" method="post" style="display: inline-block; margin-right: 0.5em;">
+              {% csrf_token %}
+              <button type="submit" class="button">Accepter</button>
+          </form>
+          <form action="{% url 'missions:reject_candidature' candidature.pk %}" method="post" style="display: inline-block;">
+              {% csrf_token %}
+              <button type="submit" class="button button-secondary">Refuser</button>
+          </form>
+        </div>
+        {% endif %}
+      </article>
+    {% endfor %}
+  {% else %}
+    <p>Aucune candidature n'a été reçue pour cette mission pour le moment.</p>
+  {% endif %}
+
+  <p style="margin-top: 2em;"><a href="{% url 'missions:detail' mission.pk %}">Retour aux détails de la mission</a></p>
+  <p><a href="{% url 'missions:my_missions' %}">Retour à mes missions publiées</a></p>
+
+  {# Styles des statuts (à mettre dans style.css idéalement) #}
+  <style>
+    .status-open, .status-accepted { font-weight: bold; color: #4caf50; }
+    .status-assigned, .status-in_progress, .status-submitted, .status-viewed { font-weight: bold; color: #ff9800; }
+    .status-completed, .status-closed, .status-withdrawn { font-weight: bold; color: var(--text-secondary); }
+    .status-cancelled, .status-rejected { font-weight: bold; color: var(--error-text); }
+    .status-withdrawn, .status-cancelled { text-decoration: line-through; }
+  </style>
+
+{% endblock %}

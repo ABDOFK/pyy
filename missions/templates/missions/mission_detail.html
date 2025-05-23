@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}{{ mission.titre }} - FreelanceHub{% endblock %}
+
+{% block content %}
+  <article>
+    <h2>{{ mission.titre }}</h2>
+    <hr>
+    {# --- Informations sur le Client et Contact --- #}
+    <p>
+        <strong>Publiée par:</strong> 
+        {# Lien vers profil public si ça existe, sinon juste username #}
+        {{ mission.client.username }} 
+        le {{ mission.date_publication|date:"d/m/Y H:i" }}
+        
+        {# Bouton Contacter le client, affiché si l'utilisateur est connecté ET n'est PAS le client #}
+        {% if user.is_authenticated and user != mission.client %}
+            <a href="{% url 'messaging:start_conversation' mission.client.pk %}" class="button button-secondary" style="margin-left: 1em; font-size: 0.9em; padding: 0.4em 0.8em;">
+                Contacter {{ mission.client.username }}
+            </a>
+        {% endif %}
+    </p>
+    {# --- Fin Informations Client --- #}
+
+    <p><strong>Statut:</strong> <span class="status-{{ mission.statut|lower }}">{{ mission.get_statut_display }}</span></p>
+
+    <h3>Description</h3>
+    <p>{{ mission.description|linebreaksbr }}</p>
+
+    <h3>Détails</h3>
+    <ul>
+      <li><strong>Compétences requises:</strong> {{ mission.competences_requises|linebreaksbr|default:"Non spécifiées" }}</li>
+      <li><strong>Budget proposé:</strong> {% if mission.budget_propose %}{{ mission.budget_propose }} €{% else %}Non spécifié{% endif %}</li>
+      <li><strong>Durée estimée:</strong> {{ mission.duree_estimee|default:"Non spécifiée" }}</li>
+      <li><strong>Date limite pour postuler:</strong> {{ mission.date_limite_candidature|date:"d/m/Y"|default:"Non spécifiée" }}</li>
+      <li><strong>Début souhaité:</strong> {{ mission.date_debut_souhaitee|date:"d/m/Y"|default:"Non spécifié" }}</li>
+      <li><strong>Fin souhaitée:</strong> {{ mission.date_fin_souhaitee|date:"d/m/Y"|default:"Non spécifié" }}</li>
+    </ul>
+
+    {% if mission.freelance_assigne %}
+    <p><strong>Freelance Assigné:</strong> 
+        {# Lien vers profil public si ça existe #}
+        {{ mission.freelance_assigne.username }}
+        {# Bouton Contacter le freelance assigné (si on n'est pas ce freelance) #}
+        {% if user.is_authenticated and user != mission.freelance_assigne %}
+             <a href="{% url 'messaging:start_conversation' mission.freelance_assigne.pk %}" class="button button-secondary" style="margin-left: 1em; font-size: 0.9em; padding: 0.4em 0.8em;">
+                Contacter {{ mission.freelance_assigne.username }}
+            </a>
+        {% endif %}
+    </p>
+    {% endif %}
+    <hr>
+
+    {# --- Zone pour les actions (Postuler, Gérer candidatures, Laisser Évaluation etc.) --- #}
+    {% if user.is_authenticated %}
+        {# Bouton Postuler pour Freelance si mission ouverte ET PAS déjà postulé #}
+        {% if mission.statut == 'OPEN' and user != mission.client %}
+            {# Utilise la variable 'existing_candidature' passée par la vue #}
+            {% if not existing_candidature %}
+                {# L'utilisateur n'a pas postulé : afficher le bouton #}
+                <p><a href="{% url 'missions:apply' mission.pk %}" class="button">Postuler à cette mission</a></p>
+            {% else %}
+                {# L'utilisateur a déjà postulé : afficher le statut #}
+                <p><em>Vous avez déjà postulé (Statut: {{ existing_candidature.get_statut_display }}). <a href="{% url 'missions:my_applications' %}">Voir mes candidatures</a></em></p>
+            {% endif %}
+        {% endif %}
+
+        {# Liens pour le client pour voir/gérer la mission #}
+        {% if user == mission.client %}
+             <p>
+                 <a href="{% url 'missions:view_candidatures' mission.pk %}" class="button button-secondary">Voir les candidatures ({{ mission.candidatures.count }})</a>
+                 {# Placeholder pour un futur bouton "Modifier la mission" #}
+                 {# <a href="#" class="button button-secondary" style="margin-left: 1em;">Modifier la mission</a> #}
+             </p>
+        {% endif %}
+
+        {# Lien pour Laisser une Évaluation #}
+        {# Condition 1: l'utilisateur est le client ET un freelance est assigné #}
+        {% if user == mission.client and mission.freelance_assigne %}
+            {# Logique pour vérifier si une évaluation existe déjà (passée par la vue 'can_evaluate' serait mieux) #}
+            {# Pour l'instant, on affiche le lien, la vue 'leave_evaluation_view' gérera si déjà évalué #}
+            <p style="margin-top: 1em;">
+                <a href="{% url 'missions:leave_evaluation' mission.pk %}" class="button">
+                    Évaluer le Freelance ({{ mission.freelance_assigne.username }})
+                </a>
+            </p>
+        {# Condition 2: l'utilisateur est le freelance assigné #}
+        {% elif user == mission.freelance_assigne %}
+            {# Logique pour vérifier si une évaluation existe déjà #}
+            <p style="margin-top: 1em;">
+                <a href="{% url 'missions:leave_evaluation' mission.pk %}" class="button">
+                    Évaluer le Client ({{ mission.client.username }})
+                </a>
+            </p>
+        {% endif %}
+
+    {% else %}
+        {# Si l'utilisateur n'est pas connecté #}
+        <p><a href="{% url 'users:login' %}?next={{ request.path }}">Connectez-vous</a> pour interagir avec cette mission.</p>
+    {% endif %}
+
+    <p style="margin-top: 2em;"><a href="{% url 'missions:list' %}">Retour à la liste des missions</a></p>
+
+  </article>
+  
+  {# Styles pour les statuts (idéalement à mettre dans style.css global) #}
+  <style>
+    .status-open, .status-accepted { font-weight: bold; color: #4caf50; } /* Vert */
+    .status-assigned, .status-in_progress, .status-submitted, .status-viewed { font-weight: bold; color: #ff9800; } /* Orange */
+    .status-completed, .status-closed, .status-withdrawn { font-weight: bold; color: var(--text-secondary); } /* Gris */
+    .status-cancelled, .status-rejected { font-weight: bold; color: var(--error-text); } /* Rouge */
+    .status-withdrawn, .status-cancelled { text-decoration: line-through; } /* Barré */
+  </style>
+
+{% endblock %}

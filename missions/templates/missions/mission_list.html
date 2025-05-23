@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Missions Disponibles - FreelanceHub{% endblock %}
+
+{% block content %}
+  <h2>Missions Disponibles</h2>
+
+  {# --- Formulaire de Recherche --- #}
+  <form method="get" action="{% url 'missions:list' %}" class="search-form"> {# Utilise la méthode GET #}
+    <div class="form-row">
+        <div class="form-field">
+            {{ search_form.keywords.label_tag }}
+            {{ search_form.keywords }}
+        </div>
+        <div class="form-field">
+            {{ search_form.competences.label_tag }}
+            {{ search_form.competences }}
+        </div>
+        {# Ajoutez d'autres champs de recherche ici si vous les implémentez #}
+        {# Exemple pour budget_min et budget_max
+        <div class="form-field">
+            {{ search_form.budget_min.label_tag }}
+            {{ search_form.budget_min }}
+        </div>
+        <div class="form-field">
+            {{ search_form.budget_max.label_tag }}
+            {{ search_form.budget_max }}
+        </div>
+        #}
+    </div>
+    <div class="form-actions">
+        <button type="submit" class="button">Rechercher</button>
+        {% if request.GET %} {# Affiche un bouton pour réinitialiser si des filtres sont appliqués #}
+            <a href="{% url 'missions:list' %}" class="button button-secondary" style="margin-left:1em;">Réinitialiser</a>
+        {% endif %}
+    </div>
+    {% if search_form.errors %} {# Afficher les erreurs du formulaire de recherche si besoin #}
+        <ul class="errorlist">
+            {% for field, errors in search_form.errors.items %}
+                {% for error in errors %}
+                    <li>{{ field|capfirst }}: {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+  </form>
+  <hr>
+  {# --- Fin Formulaire de Recherche --- #}
+
+  {% if user.is_authenticated %} {# Lien de création si connecté #}
+  <p><a href="{% url 'missions:create' %}" class="button">Publier une nouvelle mission</a></p>
+  {% endif %}
+
+  {% if missions %}
+    {% for mission in missions %}
+      <article class="card">
+        <h3><a href="{% url 'missions:detail' mission.pk %}">{{ mission.titre }}</a></h3>
+        <p><strong>Client:</strong> {{ mission.client.username }}</p>
+        <p><strong>Publiée le:</strong> {{ mission.date_publication|date:"d/m/Y" }}</p>
+        <p><strong>Budget:</strong> {% if mission.budget_propose %}{{ mission.budget_propose }} €{% else %}Non spécifié{% endif %}</p>
+        <p><strong>Durée:</strong> {{ mission.duree_estimee|default:"Non spécifiée" }}</p>
+        <p><strong>Compétences:</strong> {{ mission.competences_requises|truncatewords:15|default:"Non spécifiées" }}</p>
+        <p>{{ mission.description|truncatewords:30 }}</p>
+        <p><a href="{% url 'missions:detail' mission.pk %}" class="button button-secondary">Voir les détails</a></p>
+      </article>
+    {% endfor %}
+  {% else %}
+    {# Message si aucune mission ne correspond aux critères ou si aucune mission n'est ouverte #}
+    {% if request.GET %} {# Si des filtres ont été appliqués #}
+        <p>Aucune mission ne correspond à vos critères de recherche.</p>
+    {% else %} {# Si pas de filtres, et pas de missions #}
+        <p>Aucune mission n'est actuellement disponible.</p>
+    {% endif %}
+  {% endif %}
+
+  {# Style simple pour le formulaire de recherche #}
+  <style>
+    .search-form .form-row {
+        display: flex;
+        flex-wrap: wrap; /* Permet de passer à la ligne sur petits écrans */
+        gap: 1em; /* Espace entre les champs */
+        margin-bottom: 1em;
+    }
+    .search-form .form-field {
+        flex: 1; /* Permet aux champs de prendre la même largeur */
+        min-width: 200px; /* Largeur minimale avant de passer à la ligne */
+    }
+    .search-form .form-field label {
+        font-weight: normal; /* Moins d'emphase que les labels de formulaire principaux */
+        font-size: 0.85rem;
+    }
+    .search-form .form-actions {
+        margin-top: 1em;
+    }
+  </style>
+
+{% endblock %}

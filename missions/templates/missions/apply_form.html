@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Postuler à "{{ mission.titre }}" - FreelanceHub{% endblock %}
+
+{% block content %}
+  <h2>Postuler à la mission : "{{ mission.titre }}"</h2>
+  <p>Expliquez pourquoi vous êtes le bon choix et indiquez votre tarif si différent.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="button">Envoyer ma candidature</button>
+  </form>
+
+  <p style="margin-top:1em;"><a href="{% url 'missions:detail' mission.pk %}">Annuler et retourner à la mission</a></p>
+{% endblock %}

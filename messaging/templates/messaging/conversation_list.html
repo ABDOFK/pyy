@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Mes Conversations - FreelanceHub{% endblock %}
+
+{% block content %}
+  <h2>Mes Conversations</h2>
+
+  {% if conversations %}
+    <ul class="conversation-list">
+      {% for conv in conversations %}
+        <li>
+          <a href="{% url 'messaging:detail' conv.pk %}">
+            {# Essayer d'afficher l'autre participant (simple pour 1-1) #}
+            {% for participant in conv.participants.all %}
+              {% if participant != user %}
+                Conversation avec <strong>{{ participant.username }}</strong>
+              {% endif %}
+            {% endfor %}
+            {# Si c'est une conversation de groupe ou solo (improbable), afficher l'ID #}
+            {% if conv.participants.count != 2 %}
+              (Conversation {{ conv.pk }})
+            {% endif %}
+            <small class="last-activity">Dernière activité: {{ conv.date_derniere_activite|timesince }}</small>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Vous n'avez aucune conversation pour le moment.</p>
+    {# Ajouter ici un lien pour démarrer une conversation quand la fonctionnalité existera #}
+  {% endif %}
+
+  <style> 
+    .conversation-list { list-style: none; padding: 0; }
+    .conversation-list li { margin-bottom: 0.5em; }
+    .conversation-list li a {
+      display: block;
+      padding: 1em;
+      background-color: var(--surface-color);
+      border-radius: 5px;
+      text-decoration: none;
+      color: var(--text-color);
+      transition: background-color 0.2s ease;
+    }
+    .conversation-list li a:hover {
+      background-color: #3a434f; /* Un peu plus clair au survol */
+    }
+    .conversation-list .last-activity {
+        display: block;
+        font-size: 0.8em;
+        color: var(--text-secondary);
+        margin-top: 0.3em;
+    }
+  </style>
+{% endblock %}

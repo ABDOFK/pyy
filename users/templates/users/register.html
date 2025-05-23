@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Inscription - FreelanceHub{% endblock %}
+
+{% block content %}
+  <h2>Inscription</h2>
+  <form method="post">
+    {% csrf_token %} {# Sécurité importante ! #}
+    {{ form.as_p }} {# Affiche le formulaire, chaque champ dans un <p> #}
+    <button type="submit">S'inscrire</button>
+  </form>
+  <p>Déjà un compte ? <a href="{% url 'users:login' %}">Connectez-vous ici</a>.</p>
+{% endblock %}

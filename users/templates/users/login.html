@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Connexion - FreelanceHub{% endblock %}
+
+{% block content %}
+  <h2>Connexion</h2>
+  <form method="post">
+    {% csrf_token %}
+    {# Inclure le champ 'next' s'il existe pour la redirection #}
+    {% if next %}
+        <input type.hidden name="next" value="{{ next }}">
+    {% endif %}
+    {{ form.as_p }}
+    <button type="submit">Se connecter</button>
+  </form>
+  <p>Pas encore de compte ? <a href="{% url 'users:register' %}">Inscrivez-vous ici</a>.</p>
+{% endblock %}

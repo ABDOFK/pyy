@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Mes Candidatures - FreelanceHub{% endblock %}
+
+{% block content %}
+  <h2>Mes Candidatures Envoyées</h2>
+
+  {% if candidatures %}
+    {% for candidature in candidatures %}
+      <article class="card">
+        <h3><a href="{% url 'missions:detail' candidature.mission.pk %}">{{ candidature.mission.titre }}</a></h3>
+        <p><strong>Statut de ma candidature :</strong> <span class="status-{{ candidature.statut|lower }}">{{ candidature.get_statut_display }}</span></p>
+        <p><strong>Envoyée le :</strong> {{ candidature.date_candidature|date:"d/m/Y H:i" }}</p>
+        {% if candidature.lettre_motivation %}
+        <p><strong>Mon message :</strong> {{ candidature.lettre_motivation|truncatewords:25 }}</p>
+        {% endif %}
+         {% if candidature.proposition_tarifaire %}
+        <p><strong>Ma proposition :</strong> {{ candidature.proposition_tarifaire }} €</p>
+        {% endif %}
+        <p><a href="{% url 'missions:detail' candidature.mission.pk %}" class="button button-secondary">Voir la mission</a></p>
+        {# Ajouter un bouton pour retirer la candidature si statut = SUBMITTED ? #}
+      </article>
+    {% endfor %}
+  {% else %}
+    <p>Vous n'avez envoyé aucune candidature pour le moment.</p>
+  {% endif %}
+
+  {# Réutiliser le style des statuts de candidature ou le mettre dans style.css #}
+  <style>
+      .status-submitted, .status-viewed { font-weight: bold; color: #ff9800; } /* Orange */
+      .status-accepted { font-weight: bold; color: #4caf50; } /* Vert */
+      .status-rejected { font-weight: bold; color: var(--error-text); } /* Rouge */
+      .status-withdrawn { font-weight: bold; color: var(--text-secondary); text-decoration: line-through; } /* Gris barré */
+  </style>
+{% endblock %}

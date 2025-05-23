@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Modifier mon profil {{ profile_type }} - FreelanceHub{% endblock %}
+
+{% block content %}
+  <h2>Modifier mon profil {{ profile_type }}</h2>
+  <form method="post" enctype="multipart/form-data"> {# enctype est important si vous ajoutez des champs ImageField plus tard #}
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Enregistrer les modifications</button>
+  </form>
+  <p><a href="{% url 'users:profile' %}">Retour au profil</a></p>
+{% endblock %}

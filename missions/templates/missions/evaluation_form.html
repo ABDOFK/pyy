@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Évaluer {{ person_to_evaluate.username }} pour "{{ mission.titre }}" - FreelanceHub{% endblock %}
+
+{% block content %}
+  <h2>Évaluer {{ person_to_evaluate.username }} pour la mission "{{ mission.titre }}"</h2>
+
+  <form method="post">
+    {% csrf_token %}
+
+    {# Affichage des champs du formulaire #}
+    <p>
+        <label for="{{ form.note.id_for_label }}">{{ form.note.label }}</label><br>
+        {# Affichage des boutons radio manuellement pour un meilleur contrôle si besoin #}
+        {% for radio in form.note %}
+            <label style="margin-right: 1em; font-weight: normal;">
+                {{ radio.tag }} {{ radio.choice_label }}
+            </label>
+        {% endfor %}
+        {% if form.note.errors %}
+            <ul class="errorlist">
+                {% for error in form.note.errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+        {% endif %}
+    </p>
+
+    <p>
+        <label for="{{ form.commentaire.id_for_label }}">{{ form.commentaire.label }}</label><br>
+        {{ form.commentaire }}
+        {% if form.commentaire.help_text %}
+            <small style="display: block; color: var(--text-secondary);">{{ form.commentaire.help_text }}</small>
+        {% endif %}
+        {% if form.commentaire.errors %}
+            <ul class="errorlist">
+                {% for error in form.commentaire.errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+        {% endif %}
+    </p>
+
+    <button type="submit" class="button">Soumettre l'Évaluation</button>
+  </form>
+
+  <p style="margin-top:1em;"><a href="{% url 'missions:detail' mission.pk %}">Annuler et retourner à la mission</a></p>
+{% endblock %}

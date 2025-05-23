@@ -1,0 +1,53 @@
+1 Vérifiez que vous êtes dans le bon dossier :C:\Users\AdMin\OneDrive\Desktop\Python_Project.
+
+2 Créez et Activez un Environnement Virtue : python -m venv venv
+- pour activer-le : Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process  
+- .\venv\Scripts\Activate.ps1
+3 installer Django: pip install Django
+4 mettez a jour : pip freeze > requirements.txt 
+
+étape 2 : Création de la Structure du Projet Django
+
+1 Créez le Projet Django: django-admin startproject freelancehub_project .
+2 Créez les Applications Django : python manage.py startapp users         # Pour gérer Utilisateurs (Freelance, Client, Admin), profils, authentification
+python manage.py startapp missions      # Pour gérer Missions, Candidatures
+python manage.py startapp payments      # Pour gérer Paiements, Factures
+python manage.py startapp messaging     # Pour gérer le Chat
+# Vous pourriez ajouter plus tard : evaluations, etc.
+
+Étape 3 : Création des Dossiers Additionnels (Templates, Static)
+
+1 Créez le dossier central pour les Templates HTML : mkdir templates
+  -Créez le template de base : New-Item -ItemType File templates/base.html
+
+2 Créez le dossier central pour les Fichiers Statiques (CSS, JS, Images) :
+mkdir static
+mkdir static/css
+New-Item -ItemType File static/css/style.css
+mkdir static/js
+New-Item -ItemType File static/js/script.js
+mkdir static/img
+
+3 Créez les dossiers templates et static spécifiques à chaque application (pour une meilleure organisation) : # Pour l'application 'users'
+mkdir users/templates
+mkdir users/templates/users
+New-Item -ItemType File users/templates/users/login.html
+New-Item -ItemType File users/templates/users/register.html
+New-Item -ItemType File users/templates/users/profile.html # Exemple
+
+# Pour l'application 'missions'
+mkdir missions/templates
+mkdir missions/templates/missions
+New-Item -ItemType File missions/templates/missions/mission_list.html  # Exemple: liste des missions
+New-Item -ItemType File missions/templates/missions/mission_detail.html # Exemple: détail d'une mission
+New-Item -ItemType File missions/templates/missions/post_mission.html   # Exemple: formulaire client
+New-Item -ItemType File missions/templates/missions/apply_mission.html  # Exemple: formulaire freelance
+
+# Répétez pour les autres applications (payments, messaging) si nécessaire
+Use code with caution.
+Powershell
+Créez les fichiers urls.py dans chaque application : Pour définir les routes spécifiques à chaque application.
+New-Item -ItemType File users/urls.py
+New-Item -ItemType File missions/urls.py
+New-Item -ItemType File payments/urls.py
+New-Item -ItemType File messaging/urls.py

@@ -1,0 +1,63 @@
+{% load static %}
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}FreelanceHub{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}"> {# Assurez-vous d'utiliser {% load static %} en haut si nécessaire #}
+    <style>
+        /* Styles simples pour les messages flash */
+        .messages { list-style: none; padding: 0; margin: 1em 0; }
+        .messages li { padding: 0.75em; margin-bottom: 0.5em; border-radius: 4px; }
+        .messages li.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .messages li.info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .messages li.warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .messages li.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><a href="{% url 'home' %}">FreelanceHub</a></h1>
+        <nav>
+            <a href="{% url 'missions:list' %}">Trouver Missions</a> | {# Lien général #}
+          {% if user.is_authenticated %}
+              <span>Bonjour, {{ user.username }} | </span>
+              <a href="{% url 'users:profile' %}">Mon Profil</a> |
+              <a href="{% url 'missions:my_missions' %}">Mes Missions Publiées</a> | {# Lien pour les missions du client #}
+              <a href="{% url 'missions:my_applications' %}">Mes Candidatures</a> |
+              <form action="{% url 'users:logout' %}" method="post" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="submit" style="background:none; border:none; padding:0; color: blue; text-decoration:underline; cursor:pointer;">Déconnexion</button>
+              </form>
+          {% else %}
+              <a href="{% url 'users:login' %}">Connexion</a> |
+              <a href="{% url 'users:register' %}">Inscription</a>
+          {% endif %}
+        </nav>
+        <hr>
+    </header>
+
+    <main>
+        {# Affichage des messages flash #}
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <hr>
+        <p>© 2025 FreelanceHub</p>
+    </footer>
+    {# <script src="{% static 'js/script.js' %}"></script> #}
+</body>
+</html>

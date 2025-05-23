@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Mes Missions Publiées - FreelanceHub{% endblock %}
+
+{% block content %}
+  <h2>Mes Missions Publiées</h2>
+
+  <p><a href="{% url 'missions:create' %}" class="button">Publier une nouvelle mission</a></p>
+
+  {% if missions %}
+    {% for mission in missions %}
+    <article class="card">
+      {# ... autres détails ... #}
+      <p>
+          <a href="{% url 'missions:detail' mission.pk %}" class="button button-secondary">Voir les détails</a>
+          <a href="{% url 'missions:view_candidatures' mission.pk %}" style="margin-left: 0.5em;">Voir Candidatures ({{ mission.candidatures.count }})</a>
+      </p>
+    </article>
+    {% endfor %}
+  {% else %}
+    <p>Vous n'avez publié aucune mission pour le moment.</p>
+  {% endif %}
+
+  {# Réutiliser le style des statuts de mission_detail.html ou le mettre dans style.css #}
+   <style>
+    .status-open { font-weight: bold; color: #4caf50; }
+    .status-assigned, .status-in_progress { font-weight: bold; color: #ff9800; }
+    .status-completed, .status-closed { font-weight: bold; color: var(--text-secondary); }
+    .status-cancelled { font-weight: bold; color: var(--error-text); text-decoration: line-through; }
+  </style>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Mon Profil - {{ user.username }}{% endblock %}
+
+{% block content %}
+  <h2>Mon Profil : {{ user.username }}</h2>
+  <p><strong>Email:</strong> {{ user.email }}</p>
+  <p><strong>Prénom:</strong> {{ user.first_name|default:"Non renseigné" }}</p>
+  <p><strong>Nom:</strong> {{ user.last_name|default:"Non renseigné" }}</p>
+  {# Vous pourriez ajouter un lien pour modifier ces infos User de base plus tard #}
+  <hr>
+
+  <h3>Profil Freelance</h3>
+  {# ---- DEBUT Section Freelance ---- #}
+  {% if freelance_profile %}
+      {# Affiche les détails SI le profil existe #}
+      <p><strong>Titre:</strong> {{ freelance_profile.titre_professionnel|default:"Non renseigné" }}</p>
+      <p><strong>Compétences:</strong> {{ freelance_profile.competences|linebreaksbr|default:"Non renseigné" }}</p>
+      <p><strong>Expérience:</strong> {{ freelance_profile.experience|linebreaksbr|default:"Non renseigné" }}</p>
+      <p><strong>Portfolio:</strong> {% if freelance_profile.portfolio_url %}<a href="{{ freelance_profile.portfolio_url }}" target="_blank">{{ freelance_profile.portfolio_url }}</a>{% else %}Non renseigné{% endif %}</p>
+      <p><strong>Taux Journalier:</strong> {% if freelance_profile.taux_journalier %}{{ freelance_profile.taux_journalier }} €{% else %}Non renseigné{% endif %}</p>
+      <p><strong>Disponibilité:</strong> {{ freelance_profile.disponibilite|default:"Non renseigné" }}</p>
+      <p><strong>Adresse:</strong> {{ freelance_profile.adresse|linebreaksbr|default:"Non renseigné" }}</p>
+      <p><strong>Téléphone:</strong> {{ freelance_profile.telephone|default:"Non renseigné" }}</p>
+      <p><a href="{% url 'users:update_freelance_profile' %}" class="button button-secondary">Modifier mon profil Freelance</a></p> {# Lien Modifier #}
+  {% else %}
+      {# Affiche le lien Créer SI le profil N'existe PAS #}
+      <p>Vous n'avez pas encore de profil Freelance.</p>
+      <p><a href="{% url 'users:update_freelance_profile' %}" class="button">Créer mon profil Freelance</a></p> {# Lien Créer #}
+  {% endif %}
+  {# ---- FIN Section Freelance ---- #}
+  <hr>
+
+  <h3>Profil Client</h3>
+  {# ---- DEBUT Section Client ---- #}
+  {% if client_profile %}
+      {# Affiche les détails SI le profil existe #}
+      <p><strong>Nom Entreprise:</strong> {{ client_profile.nom_entreprise|default:"Non renseigné" }}</p>
+      <p><strong>Description:</strong> {{ client_profile.description_entreprise|linebreaksbr|default:"Non renseigné" }}</p>
+      <p><strong>Site Web:</strong> {% if client_profile.site_web_entreprise %}<a href="{{ client_profile.site_web_entreprise }}" target="_blank">{{ client_profile.site_web_entreprise }}</a>{% else %}Non renseigné{% endif %}</p>
+      <p><strong>Adresse Entreprise:</strong> {{ client_profile.adresse_entreprise|linebreaksbr|default:"Non renseigné" }}</p>
+      <p><strong>Téléphone Entreprise:</strong> {{ client_profile.telephone_entreprise|default:"Non renseigné" }}</p>
+      <p><a href="{% url 'users:update_client_profile' %}" class="button button-secondary">Modifier mon profil Client</a></p> {# Lien Modifier #}
+  {% else %}
+      {# Affiche le lien Créer SI le profil N'existe PAS #}
+      <p>Vous n'avez pas encore de profil Client.</p>
+      <p><a href="{% url 'users:update_client_profile' %}" class="button">Créer mon profil Client</a></p> {# Lien Créer #}
+  {% endif %}
+  {# ---- FIN Section Client ---- #}
+
+  
+  {# users/templates/users/profile.html #}
+  {# ... (après la section Profil Client) ... #}
+  <hr>
+  <h3>Évaluations Reçues ({{ evaluations_recues.count }})</h3>
+  {% if evaluations_recues %}
+      {% for evaluation in evaluations_recues %}
+          <article class="card" style="margin-top: 1em; border-left: 3px solid var(--accent-color);">
+              <p>
+                  <strong>Mission:</strong> <a href="{% url 'missions:detail' evaluation.mission.pk %}">{{ evaluation.mission.titre }}</a><br>
+                  <strong>Par:</strong> {{ evaluation.evaluateur.username }}
+                  <span style="float: right; font-size: 0.9em; color: var(--text-secondary);">{{ evaluation.date_evaluation|date:"d/m/Y" }}</span>
+              </p>
+              <p><strong>Note:</strong> 
+                  {% for i in "12345" %}
+                      {% if forloop.counter <= evaluation.note %}★{% else %}☆{% endif %}
+                  {% endfor %}
+                  ({{ evaluation.note }}/5)
+              </p>
+              {% if evaluation.commentaire %}
+                  <p><em>"{{ evaluation.commentaire|linebreaksbr }}"</em></p>
+              {% endif %}
+          </article>
+      {% endfor %}
+  {% else %}
+      <p>Vous n'avez pas encore reçu d'évaluation.</p>
+  {% endif %}
+
+{% endblock %}

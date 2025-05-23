@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_creation %}Publier une Mission{% else %}Modifier la Mission{% endif %} - FreelanceHub{% endblock %}
+
+{% block content %}
+  <h2>{% if is_creation %}Publier une nouvelle Mission{% else %}Modifier la Mission{% endif %}</h2>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="button">{% if is_creation %}Publier la Mission{% else %}Enregistrer les Modifications{% endif %}</button>
+  </form>
+
+  <p><a href="{% url 'missions:list' %}">Annuler et retourner à la liste</a></p>
+{% endblock %}

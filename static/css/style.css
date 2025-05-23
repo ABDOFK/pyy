@@ -1,0 +1,399 @@
+/* static/css/style.css */
+
+/* --- Variables (Personnalisez ici !) --- */
+:root {
+    --bg-color: #1a1f25; /* Fond sombre légèrement bleuté */
+    --surface-color: #2a313a; /* Surface un peu plus claire (cartes, formulaires) */
+    --text-color: #e0e0e0; /* Texte principal clair */
+    --text-secondary: #a0a0a0; /* Texte secondaire plus gris */
+    --accent-color: #4dd0e1; /* Turquoise vif (Cyan A200) */
+    --accent-color-darker: #00bcd4; /* Version plus foncée pour hover/active */
+    --border-color: #404853; /* Couleur de bordure subtile */
+    --error-bg: #f8d7da;
+    --error-text: #721c24;
+    --error-border: #f5c6cb;
+    --success-bg: #d4edda;
+    --success-text: #155724;
+    --success-border: #c3e6cb;
+    --info-bg: #d1ecf1;
+    --info-text: #0c5460;
+    --info-border: #bee5eb;
+  
+    --font-primary: 'Lato', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    --font-headings: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+  
+    --transition-speed: 0.3s;
+    --transition-ease: ease-in-out;
+  }
+  
+  /* --- Réinitialisation & Styles de Base --- */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    margin: 0;
+    font-family: var(--font-primary);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    font-size: 16px; /* Base font size */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-headings);
+    font-weight: 700;
+    margin-top: 1.5em;
+    margin-bottom: 0.75em;
+    color: var(--accent-color); /* Titres en couleur accentuée */
+  }
+  
+  h1 { font-size: 2.5rem; }
+  h2 { font-size: 2rem; }
+  h3 { font-size: 1.75rem; }
+  h4 { font-size: 1.5rem; }
+  
+  p {
+    margin-bottom: 1em;
+  }
+  
+  a {
+    color: var(--accent-color);
+    text-decoration: none;
+    transition: color var(--transition-speed) var(--transition-ease);
+  }
+  
+  a:hover, a:focus {
+    color: var(--accent-color-darker);
+    text-decoration: underline; /* Soulignement au survol pour clarté */
+  }
+  
+  hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 2em 0;
+  }
+  
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* --- Layout --- */
+  header, main, footer {
+    width: 100%;
+    max-width: 1100px; /* Limite la largeur max du contenu */
+    margin-left: auto;
+    margin-right: auto;
+    padding: 1em 1.5em; /* Espacement intérieur */
+  }
+  
+  main {
+    flex-grow: 1; /* Fait que le contenu principal prend l'espace restant */
+    padding-top: 2em;
+    padding-bottom: 3em;
+  }
+  
+  /* --- Header & Navigation --- */
+  header {
+    padding-top: 1.5em;
+    padding-bottom: 1em;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  header h1 a {
+    color: var(--text-color);
+    text-decoration: none;
+    font-weight: 700;
+  }
+  header h1 a:hover {
+    color: var(--accent-color);
+  }
+  
+  header nav {
+    margin-top: 1em;
+    font-size: 0.95rem;
+  }
+  
+  header nav a, header nav span {
+    margin-right: 1.5em;
+    color: var(--text-secondary);
+  }
+  header nav a:hover {
+     color: var(--accent-color);
+     text-decoration: none;
+  }
+  header nav form button { /* Style pour le bouton déconnexion */
+    color: var(--text-secondary);
+    font-size: inherit; /* Hérite de la taille de la nav */
+  }
+  header nav form button:hover {
+    color: var(--accent-color);
+    text-decoration: underline;
+  }
+  
+  /* --- Formulaires --- */
+  form {
+    margin-top: 1.5em;
+  }
+  
+  form p { /* Style les <p> générés par form.as_p */
+    margin-bottom: 1.2em;
+  }
+  
+  label {
+    display: block;
+    margin-bottom: 0.5em;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+  
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="url"],
+  input[type="number"],
+  input[type="date"],
+  textarea,
+  select {
+    display: block;
+    width: 100%;
+    padding: 0.8em 1em;
+    font-family: var(--font-primary);
+    font-size: 1rem;
+    color: var(--text-color);
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    transition: border-color var(--transition-speed) var(--transition-ease),
+                box-shadow var(--transition-speed) var(--transition-ease);
+  }
+  
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="url"]:focus,
+  input[type="number"]:focus,
+  input[type="date"]:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(77, 208, 225, 0.3); /* Halo sur focus */
+  }
+  
+  textarea {
+    min-height: 100px;
+    resize: vertical; /* Permet redimensionnement vertical */
+  }
+  
+  /* Style des erreurs de formulaire (si Django les ajoute) */
+  .errorlist {
+      color: var(--error-text);
+      background-color: rgba(248, 215, 218, 0.1);
+      border: 1px solid var(--error-border);
+      padding: 0.5em 1em;
+      margin-top: -0.5em;
+      margin-bottom: 1em;
+      font-size: 0.9rem;
+      list-style: none;
+      border-radius: 4px;
+  }
+  .errorlist li { margin-bottom: 0.3em; }
+  
+  /* --- Boutons --- */
+  button,
+  input[type="submit"],
+  a.button { /* Si vous utilisez des liens stylés comme boutons */
+    display: inline-block;
+    padding: 0.8em 1.8em;
+    font-family: var(--font-headings);
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    color: var(--bg-color); /* Texte foncé sur fond clair */
+    background-color: var(--accent-color);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color var(--transition-speed) var(--transition-ease),
+                transform var(--transition-speed) var(--transition-ease),
+                box-shadow var(--transition-speed) var(--transition-ease);
+    box-shadow: var(--shadow-sm);
+  }
+  
+  button:hover,
+  input[type="submit"]:hover,
+  a.button:hover {
+    background-color: var(--accent-color-darker);
+    transform: translateY(-2px); /* Légère animation au survol */
+    box-shadow: var(--shadow-md);
+  }
+  
+  button:active,
+  input[type="submit"]:active,
+  a.button:active {
+    transform: scale(0.98); /* Effet d'enfoncement au clic */
+    box-shadow: none;
+  }
+  
+  button:focus,
+  input[type="submit"]:focus,
+  a.button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(77, 208, 225, 0.4);
+  }
+  
+  /* Bouton "secondaire" (optionnel) */
+  .button-secondary {
+    background-color: var(--surface-color);
+    color: var(--accent-color);
+    border: 1px solid var(--accent-color);
+    box-shadow: none;
+  }
+  .button-secondary:hover {
+    background-color: rgba(77, 208, 225, 0.1); /* Fond léger accentué */
+    border-color: var(--accent-color-darker);
+    color: var(--accent-color-darker);
+  }
+  
+  /* --- Messages Flash --- */
+  .messages {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.5em 0; /* Espace sous les messages */
+  }
+  
+  .messages li {
+    padding: 1em 1.5em;
+    margin-bottom: 1em;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    opacity: 0; /* Départ pour animation */
+    transform: translateY(-10px); /* Départ pour animation */
+    animation: fadeInUp 0.5s var(--transition-ease) forwards;
+  }
+  
+  .messages li.success {
+    background-color: var(--success-bg);
+    color: var(--success-text);
+    border-color: var(--success-border);
+  }
+  .messages li.info {
+    background-color: var(--info-bg);
+    color: var(--info-text);
+    border-color: var(--info-border);
+  }
+  /* .messages li.warning ... */
+  .messages li.error {
+    background-color: var(--error-bg);
+    color: var(--error-text);
+    border-color: var(--error-border);
+  }
+  
+  
+  /* --- Cartes (Exemple pour futures listes de missions/profils) --- */
+  .card {
+    background-color: var(--surface-color);
+    padding: 1.5em;
+    border-radius: 8px;
+    margin-bottom: 1.5em;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-speed) var(--transition-ease),
+                box-shadow var(--transition-speed) var(--transition-ease);
+    opacity: 0;
+    animation: fadeIn 0.6s var(--transition-ease) forwards;
+    animation-delay: 0.2s; /* Léger délai */
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .card h3 {
+    margin-top: 0;
+    color: var(--accent-color);
+  }
+  
+  /* --- Animations --- */
+  @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px); /* Commence légèrement plus bas */
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  /* Appliquer une animation d'entrée générale au contenu principal */
+  main {
+    /* --- AJOUTEZ OU MODIFIEZ CETTE RÈGLE --- */
+    /* Applique l'animation fadeInUp:
+       - Nom: fadeInUp
+       - Durée: 0.6s
+       - Fonction de timing: var(--transition-ease) (ease-in-out)
+       - Délai avant démarrage: 0.1s
+       - Fill Mode: forwards (garde l'état final de l'animation) */
+    animation: fadeInUp 0.6s var(--transition-ease) 0.1s forwards;
+  
+    /* Optionnel: Peut aider les navigateurs à optimiser l'animation,
+       mais à utiliser avec parcimonie. */
+    /* will-change: transform, opacity; */
+  }
+  
+  /* Optionnel: Si vous vouliez animer CHAQUE enfant direct de main séparément (peut être chargé) */
+  
+  main > * {
+     animation: fadeInUp 0.6s var(--transition-ease) 0.1s forwards;
+  }
+ 
+
+  
+  
+  /* --- Footer --- */
+  footer {
+    margin-top: auto; /* Pousse le footer en bas */
+    padding-top: 1.5em;
+    padding-bottom: 1.5em;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border-color);
+  }
+  
+  /* --- Responsive (Exemple simple) --- */
+  @media (max-width: 768px) {
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.75rem; }
+    h3 { font-size: 1.5rem; }
+  
+    header, main, footer {
+      padding: 1em;
+    }
+  
+    header nav a, header nav span {
+      margin-right: 1em;
+    }
+  }

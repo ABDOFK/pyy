@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load static %} {# Si vous ajoutez des images/JS spécifiques plus tard #}
+
+{% block title %}
+  Conversation avec
+  {% for participant in conversation.participants.all %}
+      {% if participant != user %}{{ participant.username }}{% endif %}
+  {% endfor %}
+{% endblock %}
+
+{% block content %}
+  <h2>
+    Conversation avec
+    {% for participant in conversation.participants.all %}
+        {% if participant != user %}
+            {# Lien vers le profil de l'autre utilisateur (si l'URL existe) #}
+            {# <a href="{% url 'users:view_profile' participant.pk %}">{{ participant.username }}</a> #}
+            {{ participant.username }}
+        {% endif %}
+    {% endfor %}
+  </h2>
+  <hr>
+
+  <div class="message-container" id="message-container">
+    {% for message in messages_list %}
+      <div class="message {% if message.auteur == user %}sent{% else %}received{% endif %}">
+        <p class="message-content">{{ message.contenu|linebreaksbr }}</p>
+        <span class="message-meta">
+          {% if message.auteur != user %}<strong>{{ message.auteur.username }}</strong> - {% endif %}
+          {{ message.timestamp|date:"d/m/Y H:i" }} ({{ message.timestamp|timesince }} ago)
+        </span>
+      </div>
+    {% empty %}
+      <p>Aucun message dans cette conversation. Envoyez le premier !</p>
+    {% endfor %}
+  </div>
+
+  <hr>
+  {# Formulaire pour envoyer un message #}
+  <form method="post" class="send-message-form">
+    {% csrf_token %}
+    {{ form.contenu }} {# Affiche seulement le champ contenu #}
+    <button type="submit" class="button">Envoyer</button>
+  </form>
+
+  <p style="margin-top: 2em;"><a href="{% url 'messaging:list' %}">Retour à la liste des conversations</a></p>
+
+  {# Styles spécifiques pour l'affichage des messages #}
+  <style>
+    .message-container {
+      max-height: 60vh; /* Limite la hauteur pour le scroll */
+      overflow-y: auto; /* Ajoute une barre de scroll si nécessaire */
+      padding: 1em;
+      margin-bottom: 1em;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      background-color: var(--surface-color);
+    }
+    .message {
+      margin-bottom: 1em;
+      padding: 0.8em 1.2em;
+      border-radius: 15px;
+      max-width: 75%;
+      word-wrap: break-word; /* Coupe les mots longs */
+    }
+    .message.sent {
+      background-color: var(--accent-color);
+      color: var(--bg-color); /* Texte foncé sur fond accentué */
+      margin-left: auto; /* Aligne à droite */
+      border-bottom-right-radius: 5px; /* Style bulle */
+    }
+    .message.received {
+      background-color: #3a434f; /* Gris un peu plus clair */
+      color: var(--text-color);
+      margin-right: auto; /* Aligne à gauche */
+      border-bottom-left-radius: 5px; /* Style bulle */
+    }
+    .message-content {
+      margin: 0;
+    }
+    .message-meta {
+      display: block;
+      font-size: 0.75em;
+      color: rgba(224, 224, 224, 0.7); /* Gris clair transparent */
+      margin-top: 0.4em;
+      text-align: right;
+    }
+    .message.received .message-meta {
+      text-align: left;
+      color: var(--text-secondary);
+    }
+    .send-message-form {
+      display: flex;
+      gap: 0.5em; /* Espace entre textarea et bouton */
+    }
+    .send-message-form textarea {
+      flex-grow: 1; /* Le textarea prend l'espace restant */
+      min-height: auto; /* Redéfinit la hauteur min si besoin */
+      margin: 0 !important; /* Annule marge du form.as_p si besoin */
+    }
+    .send-message-form button {
+       height: fit-content; /* Ajuste la hauteur du bouton */
+       align-self: flex-end; /* Aligne le bouton en bas */
+       padding: 0.7em 1.5em; /* Ajuster le padding du bouton */
+    }
+  </style>
+  {# Petit script pour scroller en bas au chargement #}
+  <script>
+      const messageContainer = document.getElementById('message-container');
+      if (messageContainer) {
+          messageContainer.scrollTop = messageContainer.scrollHeight;
+      }
+  </script>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Accueil - FreelanceHub{% endblock %}
+
+{% block content %}
+  <h2>Bienvenue sur FreelanceHub !</h2>
+  <p>La plateforme pour connecter clients et freelances.</p>
+
+  {% if not user.is_authenticated %}
+  <p>
+    <a href="{% url 'users:register' %}">Inscrivez-vous</a> ou
+    <a href="{% url 'users:login' %}">Connectez-vous</a> pour commencer.
+  </p>
+  {% else %}
+  <p>Vous êtes connecté en tant que {{ user.username }}.</p>
+  <p><a href="{% url 'users:profile' %}">Voir mon profil (exemple)</a></p>
+  {% endif %}
+  <hr>
+  <p>Explorez les <a href="#">missions disponibles</a> ou <a href="#">trouvez des freelances</a>.</p> {# Liens à faire plus tard #}
+{% endblock %}
